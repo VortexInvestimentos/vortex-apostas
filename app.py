@@ -34,8 +34,15 @@ def mostrar_logo_centralizada(caminho, largura=140):
 if os.path.exists("logo_vortex.png"):
     mostrar_logo_centralizada("logo_vortex.png", largura=140)
 
-st.title("Vortex Bet Hunter")
-st.subheader("Vortex Investimentos")
+st.markdown(
+    """
+    <div style="text-align: center;">
+        <h1>Vortex Investimentos</h1>
+        <h3 style="font-weight: 400;">Vortex Bet Hunter</h3>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # =========================
 # FUNÇÃO OBJETIVO FINAL
