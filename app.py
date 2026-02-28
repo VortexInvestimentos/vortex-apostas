@@ -26,10 +26,7 @@ st.markdown(
 )
 
 if os.path.exists("logo_vortex.png"):
-    with st.container():
-        col1, col2, col3 = st.columns([3, 2, 3])
-        with col2:
-            st.image("logo_vortex.png", width=140)
+    st.image("logo_vortex.png", width=140)
         
 st.title("Vortex Investimentos")
 st.subheader("Vortex Bet Hunter")
