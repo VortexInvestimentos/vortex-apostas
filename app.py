@@ -46,7 +46,7 @@ st.markdown(
 
     .header-title {
         font-size: 28px;
-        font-weight: 200;
+        font-weight: 300;
         margin: 0;
     }
 
@@ -65,7 +65,7 @@ st.markdown(
     }
 
     .section-title {
-        font-size: 24px;
+        font-size: 26px;
         font-weight: 300;
         margin-bottom: var(--space-sm);
     }
@@ -103,7 +103,7 @@ st.markdown("<div style='height: var(--space-md);'></div>", unsafe_allow_html=Tr
 st.markdown(
     """
     <div class="header-wrapper">
-        <h1 class="header-title">Vortex Investimentos</h1>
+        <h1 class="header-title">Vortex Bet</h1>
         <div class="header-subtitle">Vortex Bet Hunter</div>
     </div>
     """,
