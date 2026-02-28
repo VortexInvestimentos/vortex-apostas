@@ -10,23 +10,23 @@ def simulador_vortex(
     odd_min,
     odd_max,
     bilhetes,
-    patamar,
-    retirada_ur,
 ):
     saldo = valor_ur
     urs_filhotes = 0
     urs_totais = 1
+
+    patamar = valor_ur * 3
     proximo_patamar = patamar
 
     for _ in range(bilhetes):
         odd = round(random.uniform(odd_min, odd_max), 2)
 
-        # WIN sempre (modelo sem ruína)
+        # WIN sempre
         saldo *= odd
 
-        # Nascimento de UR (uma por patamar)
+        # Nascimento de UR (1 por patamar)
         if saldo >= proximo_patamar:
-            saldo -= retirada_ur
+            saldo -= valor_ur
             urs_filhotes += 1
             urs_totais += 1
             proximo_patamar += patamar
@@ -34,8 +34,8 @@ def simulador_vortex(
     return {
         "saldo_final": round(saldo, 2),
         "urs_filhotes": urs_filhotes,
-        "capital_protegido": urs_filhotes * retirada_ur,
-        "patrimonio_total": round(saldo + urs_filhotes * retirada_ur, 2),
+        "capital_protegido": urs_filhotes * valor_ur,
+        "patrimonio_total": round(saldo + urs_filhotes * valor_ur, 2),
     }
 
 
@@ -71,20 +71,20 @@ valor_ur = st.number_input(
     step=10
 )
 
+bilhetes = st.number_input(
+    "📆 Quantidade de bilhetes",
+    min_value=10,
+    max_value=1000,
+    value=30,
+    step=1
+)
+
 odd_min, odd_max = st.slider(
     "🎯 Faixa de Odds",
     min_value=1.01,
     max_value=2.00,
     value=(1.30, 1.33),
     step=0.01
-)
-
-bilhetes = st.slider(
-    "📆 Quantidade de bilhetes",
-    min_value=10,
-    max_value=1000,
-    value=30,
-    step=1
 )
 
 modo_mc = st.toggle("🔁 Ativar Monte Carlo (dispersão de resultados)")
@@ -94,8 +94,6 @@ config = {
     "odd_min": odd_min,
     "odd_max": odd_max,
     "bilhetes": bilhetes,
-    "patamar": 300,
-    "retirada_ur": valor_ur
 }
 
 if st.button("▶️ SIMULAR"):
