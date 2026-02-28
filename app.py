@@ -7,7 +7,7 @@ import base64
 # =========================================================
 # CONFIGURAÇÃO DA PÁGINA
 # =========================================================
-st.set_page_config(page_title="Vortex Investimentos", layout="centered")
+st.set_page_config(page_title="Vortex Bet", layout="centered")
 
 # =========================================================
 # CSS GLOBAL (FONTE, FUNDO, CORES, ESPAÇAMENTOS)
@@ -45,14 +45,14 @@ st.markdown(
     }
 
     .header-title {
-        font-size: 26px;
-        font-weight: 300;
+        font-size: 28px;
+        font-weight: 200;
         margin: 0;
     }
 
     .header-subtitle {
-        font-size: 22px;
-        font-weight: 300;
+        font-size: 26px;
+        font-weight: 200;
         margin-top: 6px;
         color: #B0B0B0;
     }
@@ -65,7 +65,7 @@ st.markdown(
     }
 
     .section-title {
-        font-size: 2opx;
+        font-size: 24px;
         font-weight: 300;
         margin-bottom: var(--space-sm);
     }
