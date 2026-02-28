@@ -12,7 +12,7 @@ if os.path.exists("logo_vortex.png"):
     st.image("logo_vortex.png", width=200)
 
 st.title("Vortex Investimentos")
-st.subheader("Vortex BET Hunter")
+st.subheader("Vortex Bet Hunter")
 
 # =========================
 # FUNÇÃO OBJETIVO FINAL
@@ -26,7 +26,7 @@ def calcular_bilhetes_para_objetivo(valor_ur, odd, objetivo):
 # =========================
 # CORE ENGINE (CENÁRIO FIXO)
 # =========================
-def rodar_cenario(valor_ur, odd, bilhetes, multiplicador):
+def rodar_cenario(valor_ur, odd, bilhetes, multiplicador, ativar_patamar):
     saldo = valor_ur
     urs = 0
     historico = []
@@ -37,7 +37,7 @@ def rodar_cenario(valor_ur, odd, bilhetes, multiplicador):
         saldo *= odd
         evento = None
 
-        if saldo >= patamar:
+        if ativar_patamar and saldo >= patamar:
             saldo -= valor_ur
             urs += 1
             evento = f"UR ({multiplicador}×)"
@@ -55,7 +55,7 @@ def rodar_cenario(valor_ur, odd, bilhetes, multiplicador):
 # =========================
 # BACKTEST EXAUSTIVO
 # =========================
-def backtest(valor_ur, bilhetes, odd_min, odd_max, pat_min, pat_max):
+def backtest(valor_ur, bilhetes, odd_min, odd_max, pat_min, pat_max, ativar_patamar):
     resultados = []
 
     odds = [round(o, 2) for o in frange(odd_min, odd_max, 0.01)]
@@ -63,12 +63,12 @@ def backtest(valor_ur, bilhetes, odd_min, odd_max, pat_min, pat_max):
 
     for odd in odds:
         for pat in patamares:
-            df, urs = rodar_cenario(valor_ur, odd, bilhetes, pat)
+            df, urs = rodar_cenario(valor_ur, odd, bilhetes, pat, ativar_patamar)
             final = df.iloc[-1]["Patrimônio Total"]
 
             resultados.append({
                 "Odd": odd,
-                "Patamar (×UR)": pat,
+                "Patamar (×UR)": pat if ativar_patamar else "—",
                 "URs Criadas": urs,
                 "Patrimônio Final": final,
                 "Lucro": round(final - valor_ur, 2),
@@ -93,34 +93,13 @@ st.markdown("## 🎯 Cálculo de Objetivo Final")
 ativar_objetivo = st.toggle("Ativar cálculo de objetivo final")
 
 if ativar_objetivo:
-    objetivo = st.number_input(
-        "Objetivo final (R$)",
-        min_value=1,
-        step=1,
-        value=1000
-    )
-
-    valor_ur_obj = st.number_input(
-        "Valor da UR (R$)",
-        min_value=1,
-        step=1,
-        value=100
-    )
-
-    odd_fixa = st.number_input(
-        "Odd fixa",
-        min_value=1.01,
-        step=0.01,
-        value=1.33
-    )
+    objetivo = st.number_input("Objetivo final (R$)", min_value=1, step=1, value=1000)
+    valor_ur_obj = st.number_input("Valor da UR (R$)", min_value=1, step=1, value=100)
+    odd_fixa = st.number_input("Odd fixa", min_value=1.01, step=0.01, value=1.33)
 
     if st.button("CALCULAR BILHETES NECESSÁRIOS"):
         n = calcular_bilhetes_para_objetivo(valor_ur_obj, odd_fixa, objetivo)
-
-        st.success(
-            f"São necessários **{n} bilhetes vencedores consecutivos** "
-            f"para alcançar ou superar R$ {objetivo}."
-        )
+        st.success(f"São necessários **{n} bilhetes vencedores consecutivos**.")
 
 st.divider()
 
@@ -137,28 +116,69 @@ odd_min, odd_max = st.slider(
     1.01, 2.00, (1.30, 1.33), step=0.01
 )
 
+ativar_patamar = st.toggle("Ativar retirada de UR (patamar)", value=True)
+
 pat_min, pat_max = st.slider(
     "Faixa de Patamar (multiplicador da UR)",
     min_value=2,
     max_value=5,
     value=(2, 4),
-    step=1
+    step=1,
+    disabled=not ativar_patamar
 )
 
 if st.button("RODAR BACKTEST"):
-    df_bt = backtest(valor_ur, bilhetes, odd_min, odd_max, pat_min, pat_max)
+    # Backtest COM patamar
+    df_com = backtest(
+        valor_ur, bilhetes,
+        odd_min, odd_max,
+        pat_min, pat_max,
+        ativar_patamar=True
+    )
 
-    st.markdown("### Resultados (ordenados por maior lucro)")
+    # Backtest SEM patamar
+    df_sem = backtest(
+        valor_ur, bilhetes,
+        odd_min, odd_max,
+        pat_min, pat_max,
+        ativar_patamar=False
+    )
+
+    st.markdown("## 📊 Comparação Automática")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("### 🔐 Com Proteção (UR)")
+        st.metric("Melhor Patrimônio", f"R$ {df_com.iloc[0]['Patrimônio Final']}")
+        st.metric("Lucro Máximo", f"R$ {df_com.iloc[0]['Lucro']}")
+
+    with col2:
+        st.markdown("### 🔥 Sem Proteção")
+        st.metric("Melhor Patrimônio", f"R$ {df_sem.iloc[0]['Patrimônio Final']}")
+        st.metric("Lucro Máximo", f"R$ {df_sem.iloc[0]['Lucro']}")
+
+    st.divider()
+
+    st.markdown("## 📋 Resultados COM Patamar")
     st.dataframe(
-        df_bt[["Odd", "Patamar (×UR)", "URs Criadas", "Lucro", "Patrimônio Final"]],
+        df_com[["Odd", "Patamar (×UR)", "URs Criadas", "Lucro", "Patrimônio Final"]],
         use_container_width=True
     )
 
-    st.markdown("### Selecionar cenário para visualizar")
+    st.markdown("## 📋 Resultados SEM Patamar")
+    st.dataframe(
+        df_sem[["Odd", "URs Criadas", "Lucro", "Patrimônio Final"]],
+        use_container_width=True
+    )
+
+    st.divider()
+
+    st.markdown("## 📈 Visualizar Cenário (COM Patamar)")
 
     opcoes = [
         f"Odd {row['Odd']} | Patamar {row['Patamar (×UR)']}× | Lucro {row['Lucro']}"
-        for _, row in df_bt.iterrows()
+        for _, row in df_com.iterrows()
     ]
 
     escolha = st.selectbox(
@@ -167,9 +187,8 @@ if st.button("RODAR BACKTEST"):
         format_func=lambda i: opcoes[i]
     )
 
-    df_sel = df_bt.iloc[escolha]["Histórico"]
+    df_sel = df_com.iloc[escolha]["Histórico"]
 
-    st.markdown("### Gráfico do cenário selecionado")
     st.line_chart(df_sel.set_index("Bilhete")["Patrimônio Total"])
 
     eventos = df_sel[df_sel["Evento"].notna()]
