@@ -2,10 +2,8 @@ import streamlit as st
 import pandas as pd
 import os
 import math
+import base64
 
-# =========================
-# HEADER
-# =========================
 st.set_page_config(page_title="Vortex Investimentos", layout="centered")
 
 st.markdown(
@@ -15,8 +13,6 @@ st.markdown(
         background-color: #000000;
         color: #FFFFFF;
     }
-
-    /* Ajuste de textos */
     h1, h2, h3, h4, h5, h6, p, span, label {
         color: #FFFFFF !important;
     }
@@ -25,11 +21,21 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+def mostrar_logo_centralizada(caminho, largura=140):
+    with open(caminho, "rb") as f:
+        dados = base64.b64encode(f.read()).decode()
+    st.markdown(
+        f"<div style='display:flex; justify-content:center;'>"
+        f"<img src='data:image/png;base64,{dados}' width='{largura}'>"
+        f"</div>",
+        unsafe_allow_html=True
+    )
+
 if os.path.exists("logo_vortex.png"):
-    st.image("logo_vortex.png", width=140)
-        
-st.title("Vortex Investimentos")
-st.subheader("Vortex Bet Hunter")
+    mostrar_logo_centralizada("logo_vortex.png", largura=140)
+
+st.title("Vortex Bet Hunter")
+st.subheader("Vortex Investimentos")
 
 # =========================
 # FUNÇÃO OBJETIVO FINAL
