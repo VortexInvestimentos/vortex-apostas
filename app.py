@@ -10,12 +10,19 @@ import base64
 st.set_page_config(page_title="Vortex Investimentos", layout="centered")
 
 # =========================================================
-# CSS GLOBAL (FONTE + FUNDO + CORES)
+# CSS GLOBAL (FONTE, FUNDO, CORES, ESPAÇAMENTOS)
 # =========================================================
 st.markdown(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap');
+
+    :root {
+        --space-xs: 8px;
+        --space-sm: 16px;
+        --space-md: 28px;
+        --space-lg: 40px;
+    }
 
     .stApp {
         background-color: #000000;
@@ -26,6 +33,45 @@ st.markdown(
     h1, h2, h3, h4, h5, h6, p, span, label, div {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
         color: #FFFFFF;
+    }
+
+    .header-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        width: 100%;
+    }
+
+    .header-title {
+        font-size: 32px;
+        font-weight: 400;
+        margin: 0;
+    }
+
+    .header-subtitle {
+        font-size: 18px;
+        font-weight: 300;
+        margin-top: 6px;
+        color: #B0B0B0;
+    }
+
+    .divider {
+        width: 60%;
+        height: 1px;
+        background-color: #222222;
+        margin: var(--space-lg) auto;
+    }
+
+    .section-title {
+        font-size: 22px;
+        font-weight: 400;
+        margin-bottom: var(--space-sm);
+    }
+
+    .section {
+        margin-bottom: var(--space-lg);
     }
     </style>
     """,
@@ -52,25 +98,19 @@ def mostrar_logo_centralizada(caminho, largura=140):
 if os.path.exists("logo_vortex.png"):
     mostrar_logo_centralizada("logo_vortex.png", largura=140)
 
-# Espaço entre logo e título
-st.markdown("<div style='height: 22px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height: var(--space-md);'></div>", unsafe_allow_html=True)
 
 st.markdown(
     """
-    <div style="text-align: center;">
-        <h1 style="font-size: 32px; font-weight: 400; margin-bottom: 6px;">
-            Vortex Investimentos
-        </h1>
-        <h3 style="font-size: 18px; font-weight: 300; margin-top: 0;">
-            Vortex Bet Hunter
-        </h3>
+    <div class="header-wrapper">
+        <h1 class="header-title">Vortex Investimentos</h1>
+        <div class="header-subtitle">Vortex Bet Hunter</div>
     </div>
     """,
     unsafe_allow_html=True
 )
 
-# Espaço entre subtítulo e primeira seção
-st.markdown("<div style='height: 36px;'></div>", unsafe_allow_html=True)
+st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
 # =========================================================
 # FUNÇÃO – OBJETIVO FINAL
@@ -82,12 +122,10 @@ def calcular_bilhetes_para_objetivo(valor_ur, odd, objetivo):
     return math.ceil(n)
 
 # =========================================================
-# TÍTULO – OBJETIVO FINAL
+# SEÇÃO – OBJETIVO FINAL
 # =========================================================
-st.markdown(
-    "<h2 style='font-size: 22px; font-weight: 400;'>🎯 Cálculo de Objetivo Final</h2>",
-    unsafe_allow_html=True
-)
+st.markdown("<div class='section'>", unsafe_allow_html=True)
+st.markdown("<div class='section-title'>🎯 Cálculo de Objetivo Final</div>", unsafe_allow_html=True)
 
 ativar_objetivo = st.toggle("Ativar cálculo de objetivo final")
 
@@ -100,10 +138,10 @@ if ativar_objetivo:
         n = calcular_bilhetes_para_objetivo(valor_ur_obj, odd_fixa, objetivo)
         st.success(f"São necessários **{n} bilhetes vencedores consecutivos**.")
 
-st.markdown("<div style='height: 36px;'></div>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================================================
-# CORE ENGINE – CENÁRIO FIXO
+# CORE ENGINE
 # =========================================================
 def rodar_cenario(valor_ur, odd, bilhetes, multiplicador, ativar_patamar):
     saldo = valor_ur
@@ -131,12 +169,13 @@ def rodar_cenario(valor_ur, odd, bilhetes, multiplicador, ativar_patamar):
 
     return pd.DataFrame(historico), urs
 
-# =========================================================
-# BACKTEST EXAUSTIVO
-# =========================================================
+def frange(start, stop, step):
+    while start <= stop + 1e-9:
+        yield start
+        start += step
+
 def backtest(valor_ur, bilhetes, odd_min, odd_max, pat_min, pat_max, ativar_patamar):
     resultados = []
-
     odds = [round(o, 2) for o in frange(odd_min, odd_max, 0.01)]
     patamares = list(range(pat_min, pat_max + 1))
 
@@ -154,23 +193,13 @@ def backtest(valor_ur, bilhetes, odd_min, odd_max, pat_min, pat_max, ativar_pata
                 "Histórico": df
             })
 
-    df_resultados = pd.DataFrame(resultados)
-    df_resultados = df_resultados.sort_values(by="Lucro", ascending=False)
-
-    return df_resultados
-
-def frange(start, stop, step):
-    while start <= stop + 1e-9:
-        yield start
-        start += step
+    return pd.DataFrame(resultados).sort_values(by="Lucro", ascending=False)
 
 # =========================================================
-# TÍTULO – BACKTEST
+# SEÇÃO – BACKTEST
 # =========================================================
-st.markdown(
-    "<h2 style='font-size: 22px; font-weight: 400;'>🔍 Backtest Paramétrico</h2>",
-    unsafe_allow_html=True
-)
+st.markdown("<div class='section'>", unsafe_allow_html=True)
+st.markdown("<div class='section-title'>🔍 Backtest Paramétrico</div>", unsafe_allow_html=True)
 
 valor_ur = st.number_input("Valor da UR", 10, 1000, 100, step=10)
 bilhetes = st.number_input("Quantidade de bilhetes", 10, 1000, 50, step=1)
@@ -192,70 +221,15 @@ pat_min, pat_max = st.slider(
 )
 
 if st.button("Rodar Backtest"):
-    df_com = backtest(
-        valor_ur, bilhetes,
-        odd_min, odd_max,
-        pat_min, pat_max,
-        ativar_patamar=True
-    )
-
-    df_sem = backtest(
-        valor_ur, bilhetes,
-        odd_min, odd_max,
-        pat_min, pat_max,
-        ativar_patamar=False
-    )
-
-    st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+    df_com = backtest(valor_ur, bilhetes, odd_min, odd_max, pat_min, pat_max, True)
+    df_sem = backtest(valor_ur, bilhetes, odd_min, odd_max, pat_min, pat_max, False)
 
     st.markdown("### Comparação Automática")
 
     col1, col2 = st.columns(2)
-
     with col1:
-        st.markdown("**Com proteção (UR)**")
-        st.metric("Melhor Patrimônio", f"R$ {df_com.iloc[0]['Patrimônio Final']}")
-        st.metric("Lucro Máximo", f"R$ {df_com.iloc[0]['Lucro']}")
-
+        st.metric("Melhor Patrimônio (com proteção)", f"R$ {df_com.iloc[0]['Patrimônio Final']}")
     with col2:
-        st.markdown("**Sem proteção**")
-        st.metric("Melhor Patrimônio", f"R$ {df_sem.iloc[0]['Patrimônio Final']}")
-        st.metric("Lucro Máximo", f"R$ {df_sem.iloc[0]['Lucro']}")
+        st.metric("Melhor Patrimônio (sem proteção)", f"R$ {df_sem.iloc[0]['Patrimônio Final']}")
 
-    st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-
-    st.markdown("### Resultados com Patamar")
-    st.dataframe(
-        df_com[["Odd", "Patamar (×UR)", "URs Criadas", "Lucro", "Patrimônio Final"]],
-        use_container_width=True
-    )
-
-    st.markdown("### Resultados sem Patamar")
-    st.dataframe(
-        df_sem[["Odd", "URs Criadas", "Lucro", "Patrimônio Final"]],
-        use_container_width=True
-    )
-
-    st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-
-    st.markdown("### Visualizar Cenário (com patamar)")
-
-    opcoes = [
-        f"Odd {row['Odd']} | Patamar {row['Patamar (×UR)']}× | Lucro {row['Lucro']}"
-        for _, row in df_com.iterrows()
-    ]
-
-    escolha = st.selectbox(
-        "Escolha um cenário",
-        range(len(opcoes)),
-        format_func=lambda i: opcoes[i]
-    )
-
-    df_sel = df_com.iloc[escolha]["Histórico"]
-
-    st.line_chart(df_sel.set_index("Bilhete")["Patrimônio Total"])
-
-    eventos = df_sel[df_sel["Evento"].notna()]
-    if not eventos.empty:
-        st.markdown("**Pontos de nascimento de URs**")
-        st.write(eventos[["Bilhete", "Evento"]])
+st.markdown("</div>", unsafe_allow_html=True)
