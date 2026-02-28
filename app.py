@@ -45,13 +45,13 @@ st.markdown(
     }
 
     .header-title {
-        font-size: 32px;
-        font-weight: 400;
+        font-size: 26px;
+        font-weight: 300;
         margin: 0;
     }
 
     .header-subtitle {
-        font-size: 18px;
+        font-size: 22px;
         font-weight: 300;
         margin-top: 6px;
         color: #B0B0B0;
@@ -65,8 +65,8 @@ st.markdown(
     }
 
     .section-title {
-        font-size: 22px;
-        font-weight: 400;
+        font-size: 2opx;
+        font-weight: 300;
         margin-bottom: var(--space-sm);
     }
 
