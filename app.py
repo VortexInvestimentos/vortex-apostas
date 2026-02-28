@@ -1,41 +1,116 @@
-import streamlit as st
-import pandas as pd
-import os
-import math
-import base64 
-
-# =========================================================
-# CONFIGURAÇÃO DA PÁGINA
-# =========================================================
-st.set_page_config(page_title="Vortex Bet", layout="centered")
-
-# =========================================================
-# CSS
-# =========================================================
-st.markdown("""
-<style>
-.stApp {
-    background-color: #000000;
-    color: #FFFFFF;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# =========================================================
-# LOGO
-# =========================================================
-def mostrar_logo_centralizada(caminho, largura=140):
-    with open(caminho, "rb") as f:
-        dados = base64.b64encode(f.read()).decode()
-    st.markdown(
-        f"<div style='display:flex;justify-content:center;'><img src='data:image/png;base64,{dados}' width='{largura}'></div>",
-        unsafe_allow_html=True
-    )
-
-if os.path.exists("logo_vortex.png"):
-    mostrar_logo_centralizada("logo_vortex.png")
-
-st.markdown("## Vortex Bet Hunter")
+import streamlit as st    
+import pandas as pd    
+import os    
+import math    
+import base64    
+    
+# =========================================================    
+# CONFIGURAÇÃO DA PÁGINA    
+# =========================================================    
+st.set_page_config(page_title="Vortex Bet", layout="centered")    
+    
+# =========================================================    
+# CSS GLOBAL (FONTE, FUNDO, CORES, ESPAÇAMENTOS)    
+# =========================================================    
+st.markdown(    
+    """    
+    <style>    
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap');    
+    
+    :root {    
+        --space-xs: 8px;    
+        --space-sm: 16px;    
+        --space-md: 28px;    
+        --space-lg: 40px;    
+    }    
+    
+    .stApp {    
+        background-color: #000000;    
+        color: #FFFFFF;    
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;    
+    }    
+    
+    h1, h2, h3, h4, h5, h6, p, span, label, div {    
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;    
+        color: #FFFFFF;    
+    }    
+    
+    .header-wrapper {    
+        display: flex;    
+        flex-direction: column;    
+        align-items: center;    
+        justify-content: center;    
+        text-align: center;    
+        width: 100%;    
+    }    
+    
+    .header-title {    
+        font-size: 28px;    
+        font-weight: 300;    
+        margin: 0;    
+    }    
+    
+    .header-subtitle {    
+        font-size: 26px;    
+        font-weight: 200;    
+        margin-top: 6px;    
+        color: #B0B0B0;    
+    }    
+    
+    .divider {    
+        width: 60%;    
+        height: 1px;    
+        background-color: #222222;    
+        margin: var(--space-lg) auto;    
+    }    
+    
+    .section-title {    
+        font-size: 26px;    
+        font-weight: 300;    
+        margin-bottom: var(--space-sm);    
+    }    
+    
+    .section {    
+        margin-bottom: var(--space-lg);    
+    }    
+    </style>    
+    """,    
+    unsafe_allow_html=True    
+)    
+    
+# =========================================================    
+# FUNÇÃO PARA LOGO CENTRALIZADA (BASE64)    
+# =========================================================    
+def mostrar_logo_centralizada(caminho, largura=140):    
+    with open(caminho, "rb") as f:    
+        dados = base64.b64encode(f.read()).decode()    
+    
+    html = f"""    
+    <div style="display: flex; justify-content: center;">    
+        <img src="data:image/png;base64,{dados}" width="{largura}">    
+    </div>    
+    """    
+    st.markdown(html, unsafe_allow_html=True)    
+    
+# =========================================================    
+# HEADER (LOGO + TÍTULO + SUBTÍTULO)    
+# =========================================================    
+if os.path.exists("logo_vortex.png"):    
+    mostrar_logo_centralizada("logo_vortex.png", largura=140)    
+    
+st.markdown("<div style='height: var(--space-md);'></div>", unsafe_allow_html=True)    
+    
+st.markdown(    
+    """    
+    <div class="header-wrapper">    
+        <h1 class="header-title">Vortex Bet</h1>    
+        <div class="header-subtitle">Vortex Bet Hunter</div>    
+    </div>    
+    """,    
+    unsafe_allow_html=True    
+)    
+    
+st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
 # =========================================================
 # OBJETIVO FINAL – FLEXÍVEL
