@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import math
 
 # =========================
 # HEADER
@@ -14,7 +15,16 @@ st.title("Vortex Investimentos")
 st.subheader("Método Vortex ARC – Engenharia de Risco")
 
 # =========================
-# CORE ENGINE (DETERMINÍSTICO)
+# FUNÇÃO OBJETIVO FINAL
+# =========================
+def calcular_bilhetes_para_objetivo(valor_ur, odd, objetivo):
+    if odd <= 1 or objetivo <= valor_ur:
+        return 0
+    n = math.log(objetivo / valor_ur) / math.log(odd)
+    return math.ceil(n)
+
+# =========================
+# CORE ENGINE (CENÁRIO FIXO)
 # =========================
 def rodar_cenario(valor_ur, odd, bilhetes, multiplicador):
     saldo = valor_ur
@@ -41,7 +51,6 @@ def rodar_cenario(valor_ur, odd, bilhetes, multiplicador):
         })
 
     return pd.DataFrame(historico), urs
-
 
 # =========================
 # BACKTEST EXAUSTIVO
@@ -71,17 +80,54 @@ def backtest(valor_ur, bilhetes, odd_min, odd_max, pat_min, pat_max):
 
     return df_resultados
 
-
 def frange(start, stop, step):
     while start <= stop + 1e-9:
         yield start
         start += step
 
+# =========================
+# UI — OBJETIVO FINAL
+# =========================
+st.markdown("## 🎯 Cálculo de Objetivo Final")
+
+ativar_objetivo = st.toggle("Ativar cálculo de objetivo final")
+
+if ativar_objetivo:
+    objetivo = st.number_input(
+        "Objetivo final (R$)",
+        min_value=1,
+        step=1,
+        value=1000
+    )
+
+    valor_ur_obj = st.number_input(
+        "Valor da UR (R$)",
+        min_value=1,
+        step=1,
+        value=100
+    )
+
+    odd_fixa = st.number_input(
+        "Odd fixa",
+        min_value=1.01,
+        step=0.01,
+        value=1.33
+    )
+
+    if st.button("CALCULAR BILHETES NECESSÁRIOS"):
+        n = calcular_bilhetes_para_objetivo(valor_ur_obj, odd_fixa, objetivo)
+
+        st.success(
+            f"São necessários **{n} bilhetes vencedores consecutivos** "
+            f"para alcançar ou superar R$ {objetivo}."
+        )
+
+st.divider()
 
 # =========================
-# UI – PARÂMETROS
+# UI — BACKTEST
 # =========================
-st.markdown("### Parâmetros do Backtest")
+st.markdown("## 🔍 Backtest Paramétrico")
 
 valor_ur = st.number_input("Valor da UR", 10, 1000, 100, step=10)
 bilhetes = st.number_input("Quantidade de bilhetes", 10, 1000, 50, step=1)
@@ -99,26 +145,27 @@ pat_min, pat_max = st.slider(
     step=1
 )
 
-# =========================
-# EXECUÇÃO
-# =========================
 if st.button("RODAR BACKTEST"):
     df_bt = backtest(valor_ur, bilhetes, odd_min, odd_max, pat_min, pat_max)
 
-    st.markdown("## Resultados do Backtest (ordenados por lucro)")
+    st.markdown("### Resultados (ordenados por maior lucro)")
     st.dataframe(
         df_bt[["Odd", "Patamar (×UR)", "URs Criadas", "Lucro", "Patrimônio Final"]],
         use_container_width=True
     )
 
-    st.markdown("## Selecionar cenário para visualizar")
+    st.markdown("### Selecionar cenário para visualizar")
 
     opcoes = [
         f"Odd {row['Odd']} | Patamar {row['Patamar (×UR)']}× | Lucro {row['Lucro']}"
         for _, row in df_bt.iterrows()
     ]
 
-    escolha = st.selectbox("Escolha um cenário", range(len(opcoes)), format_func=lambda i: opcoes[i])
+    escolha = st.selectbox(
+        "Escolha um cenário",
+        range(len(opcoes)),
+        format_func=lambda i: opcoes[i]
+    )
 
     df_sel = df_bt.iloc[escolha]["Histórico"]
 
