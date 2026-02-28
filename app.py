@@ -1,50 +1,80 @@
 import streamlit as st
 import random
 import statistics
+import pandas as pd
 
 # =========================
-# ENGINE (DETERMINÍSTICO)
+# CONFIGURAÇÕES DE MODOS
+# =========================
+MODOS = {
+    "Personalizado": None,
+    "Conservador": {
+        "odd_min": 1.05,
+        "odd_max": 1.20,
+        "multiplicador_patamar": 4
+    },
+    "Normal": {
+        "odd_min": 1.25,
+        "odd_max": 1.35,
+        "multiplicador_patamar": 3
+    },
+    "Agressivo": {
+        "odd_min": 1.40,
+        "odd_max": 1.60,
+        "multiplicador_patamar": 2
+    }
+}
+
+# =========================
+# ENGINE
 # =========================
 def simulador_vortex(
     valor_ur,
     odd_min,
     odd_max,
     bilhetes,
+    multiplicador_patamar,
 ):
     saldo = valor_ur
     urs_filhotes = 0
-    urs_totais = 1
 
-    patamar = valor_ur * 3
+    patamar = valor_ur * multiplicador_patamar
     proximo_patamar = patamar
 
-    for _ in range(bilhetes):
-        odd = round(random.uniform(odd_min, odd_max), 2)
+    historico = []
 
-        # WIN sempre
+    for i in range(1, bilhetes + 1):
+        odd = round(random.uniform(odd_min, odd_max), 2)
         saldo *= odd
 
-        # Nascimento de UR (1 por patamar)
+        evento = "WIN"
+
         if saldo >= proximo_patamar:
             saldo -= valor_ur
             urs_filhotes += 1
-            urs_totais += 1
             proximo_patamar += patamar
+            evento = "UR FILHOTE"
 
-    return {
-        "saldo_final": round(saldo, 2),
-        "urs_filhotes": urs_filhotes,
-        "capital_protegido": urs_filhotes * valor_ur,
-        "patrimonio_total": round(saldo + urs_filhotes * valor_ur, 2),
-    }
+        patrimonio = saldo + urs_filhotes * valor_ur
+
+        historico.append({
+            "Bilhete": i,
+            "Odd": odd,
+            "Saldo Operando": round(saldo, 2),
+            "URs Protegidas": urs_filhotes,
+            "Patrimônio Total": round(patrimonio, 2),
+            "Evento": evento
+        })
+
+    return pd.DataFrame(historico)
 
 
-def monte_carlo(config, n=5000):
+def monte_carlo(config, n=3000):
     resultados = []
 
     for _ in range(n):
-        r = simulador_vortex(**config)
-        resultados.append(r["patrimonio_total"])
+        df = simulador_vortex(**config)
+        resultados.append(df.iloc[-1]["Patrimônio Total"])
 
     return {
         "media": round(statistics.mean(resultados), 2),
@@ -53,15 +83,29 @@ def monte_carlo(config, n=5000):
         "minimo": round(min(resultados), 2),
     }
 
-
 # =========================
 # UI – MOBILE FIRST
 # =========================
 st.set_page_config(page_title="Vortex ARC – Apostas", layout="centered")
 
-st.title("📱 Vortex ARC – Engenharia de Risco")
+st.title("🌪️ Vortex Investimentos")
+st.subheader("Método Vortex ARC – Engenharia de Risco em Apostas")
 
-st.markdown("### Parâmetros")
+st.markdown("### 🎛️ Modo de Operação")
+
+modo = st.selectbox("Escolha o modo", list(MODOS.keys()))
+
+# Valores padrão
+odd_min = 1.30
+odd_max = 1.33
+multiplicador_patamar = 3
+
+if modo != "Personalizado":
+    odd_min = MODOS[modo]["odd_min"]
+    odd_max = MODOS[modo]["odd_max"]
+    multiplicador_patamar = MODOS[modo]["multiplicador_patamar"]
+
+st.markdown("### ⚙️ Parâmetros")
 
 valor_ur = st.number_input(
     "💵 Valor da UR",
@@ -75,7 +119,7 @@ bilhetes = st.number_input(
     "📆 Quantidade de bilhetes",
     min_value=10,
     max_value=1000,
-    value=30,
+    value=50,
     step=1
 )
 
@@ -83,34 +127,42 @@ odd_min, odd_max = st.slider(
     "🎯 Faixa de Odds",
     min_value=1.01,
     max_value=2.00,
-    value=(1.30, 1.33),
+    value=(odd_min, odd_max),
     step=0.01
 )
 
-modo_mc = st.toggle("🔁 Ativar Monte Carlo (dispersão de resultados)")
+multiplicador_patamar = st.slider(
+    "📦 Patamar (× UR)",
+    min_value=2,
+    max_value=5,
+    value=multiplicador_patamar,
+    step=1
+)
 
-config = {
-    "valor_ur": valor_ur,
-    "odd_min": odd_min,
-    "odd_max": odd_max,
-    "bilhetes": bilhetes,
-}
+modo_mc = st.toggle("🔁 Ativar Monte Carlo")
 
 if st.button("▶️ SIMULAR"):
-    r = simulador_vortex(**config)
+    config = {
+        "valor_ur": valor_ur,
+        "odd_min": odd_min,
+        "odd_max": odd_max,
+        "bilhetes": bilhetes,
+        "multiplicador_patamar": multiplicador_patamar
+    }
 
-    st.markdown("## 📊 Resultado")
+    df = simulador_vortex(**config)
+
+    st.markdown("## 📊 Resultado Final")
 
     col1, col2 = st.columns(2)
-    col1.metric("💰 Patrimônio Total", f"R$ {r['patrimonio_total']}")
-    col2.metric("🔐 URs Protegidas", r["urs_filhotes"])
+    col1.metric("💰 Patrimônio Total", f"R$ {df.iloc[-1]['Patrimônio Total']}")
+    col2.metric("🔐 URs Protegidas", int(df.iloc[-1]["URs Protegidas"]))
 
-    col3, col4 = st.columns(2)
-    col3.metric("🔥 Capital em Operação", f"R$ {r['saldo_final']}")
-    col4.metric("📦 Capital Protegido", f"R$ {r['capital_protegido']}")
+    st.markdown("## 📈 Gráfico de Crescimento")
+    st.line_chart(df.set_index("Bilhete")["Patrimônio Total"])
 
     if modo_mc:
-        st.markdown("## 🔁 Monte Carlo (5.000 simulações)")
+        st.markdown("## 🔁 Monte Carlo")
         mc = monte_carlo(config)
 
         st.metric("📈 Patrimônio Médio", f"R$ {mc['media']}")
