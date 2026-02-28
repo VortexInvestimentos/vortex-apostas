@@ -26,13 +26,10 @@ st.markdown(
 )
 
 if os.path.exists("logo_vortex.png"):
-    st.markdown(
-        "<div style='text-align: center;'>"
-        "<img src='logo_vortex.png' width='140'"
-        "</div>",
-        unsafe_allow_html=True
-    )
-
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.image("logo_vortex.png", width=140)
+        
 st.title("Vortex Investimentos")
 st.subheader("Vortex Bet Hunter")
 
