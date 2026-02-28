@@ -26,7 +26,7 @@ st.markdown(
 )
 
 if os.path.exists("logo_vortex.png"):
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, col2, col3 = st.columns([3, 2, 3])
     with col2:
         st.image("logo_vortex.png", width=140)
         
