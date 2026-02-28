@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import math
 import base64
+from itertools import product
 
 # =========================================================
 # CONFIGURAÇÃO DA PÁGINA
@@ -10,19 +11,12 @@ import base64
 st.set_page_config(page_title="Vortex Bet", layout="centered")
 
 # =========================================================
-# CSS GLOBAL (FONTE, FUNDO, CORES, ESPAÇAMENTOS)
+# CSS GLOBAL
 # =========================================================
 st.markdown(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap');
-
-    :root {
-        --space-xs: 8px;
-        --space-sm: 16px;
-        --space-md: 28px;
-        --space-lg: 40px;
-    }
 
     .stApp {
         background-color: #000000;
@@ -36,12 +30,7 @@ st.markdown(
     }
 
     .header-wrapper {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
         text-align: center;
-        width: 100%;
     }
 
     .header-title {
@@ -51,8 +40,8 @@ st.markdown(
     }
 
     .header-subtitle {
-        font-size: 26px;
-        font-weight: 200;
+        font-size: 22px;
+        font-weight: 300;
         margin-top: 6px;
         color: #B0B0B0;
     }
@@ -60,18 +49,14 @@ st.markdown(
     .divider {
         width: 60%;
         height: 1px;
-        background-color: #222222;
-        margin: var(--space-lg) auto;
+        background-color: #222;
+        margin: 32px auto;
     }
 
     .section-title {
-        font-size: 26px;
+        font-size: 22px;
         font-weight: 300;
-        margin-bottom: var(--space-sm);
-    }
-
-    .section {
-        margin-bottom: var(--space-lg);
+        margin-bottom: 16px;
     }
     </style>
     """,
@@ -79,26 +64,21 @@ st.markdown(
 )
 
 # =========================================================
-# FUNÇÃO PARA LOGO CENTRALIZADA (BASE64)
+# LOGO CENTRALIZADA (BASE64)
 # =========================================================
-def mostrar_logo_centralizada(caminho, largura=140):
+def mostrar_logo(caminho, largura=140):
     with open(caminho, "rb") as f:
-        dados = base64.b64encode(f.read()).decode()
+        img = base64.b64encode(f.read()).decode()
+    st.markdown(
+        f"<div style='display:flex; justify-content:center;'>"
+        f"<img src='data:image/png;base64,{img}' width='{largura}'></div>",
+        unsafe_allow_html=True
+    )
 
-    html = f"""
-    <div style="display: flex; justify-content: center;">
-        <img src="data:image/png;base64,{dados}" width="{largura}">
-    </div>
-    """
-    st.markdown(html, unsafe_allow_html=True)
-
-# =========================================================
-# HEADER (LOGO + TÍTULO + SUBTÍTULO)
-# =========================================================
 if os.path.exists("logo_vortex.png"):
-    mostrar_logo_centralizada("logo_vortex.png", largura=140)
+    mostrar_logo("logo_vortex.png", 140)
 
-st.markdown("<div style='height: var(--space-md);'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
 
 st.markdown(
     """
@@ -113,123 +93,94 @@ st.markdown(
 st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
 # =========================================================
-# FUNÇÃO – OBJETIVO FINAL
+# ========= FUNÇÕES MATEMÁTICAS =========
 # =========================================================
-def calcular_bilhetes_para_objetivo(valor_ur, odd, objetivo):
-    if odd <= 1 or objetivo <= valor_ur:
-        return 0
-    n = math.log(objetivo / valor_ur) / math.log(odd)
-    return math.ceil(n)
-
-# =========================================================
-# SEÇÃO – OBJETIVO FINAL
-# =========================================================
-st.markdown("<div class='section'>", unsafe_allow_html=True)
-st.markdown("<div class='section-title'>🎯 Cálculo de Objetivo Final</div>", unsafe_allow_html=True)
-
-ativar_objetivo = st.toggle("Ativar cálculo de objetivo final")
-
-if ativar_objetivo:
-    objetivo = st.number_input("Objetivo final (R$)", min_value=1, step=1, value=1000)
-    valor_ur_obj = st.number_input("Valor da UR (R$)", min_value=1, step=1, value=100)
-    odd_fixa = st.number_input("Odd fixa", min_value=1.01, step=0.01, value=1.33)
-
-    if st.button("Calcular bilhetes necessários"):
-        n = calcular_bilhetes_para_objetivo(valor_ur_obj, odd_fixa, objetivo)
-        st.success(f"São necessários **{n} bilhetes vencedores consecutivos**.")
-
-st.markdown("</div>", unsafe_allow_html=True)
-
-# =========================================================
-# CORE ENGINE
-# =========================================================
-def rodar_cenario(valor_ur, odd, bilhetes, multiplicador, ativar_patamar):
+def patrimonio_final(valor_ur, odd, bilhetes, patamar=None):
     saldo = valor_ur
     urs = 0
-    historico = []
 
-    patamar = valor_ur * multiplicador
-
-    for i in range(1, bilhetes + 1):
+    for _ in range(bilhetes):
         saldo *= odd
-        evento = None
-
-        if ativar_patamar and saldo >= patamar:
+        if patamar and saldo >= valor_ur * patamar:
             saldo -= valor_ur
             urs += 1
-            evento = f"UR ({multiplicador}×)"
 
-        patrimonio = saldo + urs * valor_ur
-
-        historico.append({
-            "Bilhete": i,
-            "Patrimônio Total": round(patrimonio, 2),
-            "Evento": evento
-        })
-
-    return pd.DataFrame(historico), urs
-
-def frange(start, stop, step):
-    while start <= stop + 1e-9:
-        yield start
-        start += step
-
-def backtest(valor_ur, bilhetes, odd_min, odd_max, pat_min, pat_max, ativar_patamar):
-    resultados = []
-    odds = [round(o, 2) for o in frange(odd_min, odd_max, 0.01)]
-    patamares = list(range(pat_min, pat_max + 1))
-
-    for odd in odds:
-        for pat in patamares:
-            df, urs = rodar_cenario(valor_ur, odd, bilhetes, pat, ativar_patamar)
-            final = df.iloc[-1]["Patrimônio Total"]
-
-            resultados.append({
-                "Odd": odd,
-                "Patamar (×UR)": pat if ativar_patamar else "—",
-                "URs Criadas": urs,
-                "Patrimônio Final": final,
-                "Lucro": round(final - valor_ur, 2),
-                "Histórico": df
-            })
-
-    return pd.DataFrame(resultados).sort_values(by="Lucro", ascending=False)
+    return saldo + urs * valor_ur
 
 # =========================================================
-# SEÇÃO – BACKTEST
+# ========= OBJETIVO FINAL =========
 # =========================================================
-st.markdown("<div class='section'>", unsafe_allow_html=True)
-st.markdown("<div class='section-title'>🔍 Backtest Paramétrico</div>", unsafe_allow_html=True)
+st.markdown("<div class='section-title'>🎯 Cálculo de Objetivo Final</div>", unsafe_allow_html=True)
 
-valor_ur = st.number_input("Valor da UR", 10, 1000, 100, step=10)
-bilhetes = st.number_input("Quantidade de bilhetes", 10, 1000, 50, step=1)
-
-odd_min, odd_max = st.slider(
-    "Faixa de Odds (fixas por cenário)",
-    1.01, 2.00, (1.30, 1.33), step=0.01
+modo = st.selectbox(
+    "O que você quer calcular?",
+    [
+        "Bilhetes necessários",
+        "Odd necessária",
+        "Valor da UR necessário",
+        "Objetivo final alcançado"
+    ]
 )
 
-ativar_patamar = st.toggle("Ativar retirada de UR (patamar)", value=True)
+valor_ur = st.number_input("Valor da UR (R$)", min_value=1, value=100)
+odd = st.number_input("Odd fixa", min_value=1.01, value=1.33, step=0.01)
+bilhetes = st.number_input("Quantidade de bilhetes", min_value=1, value=30)
+objetivo = st.number_input("Objetivo final (R$)", min_value=1, value=1000)
 
-pat_min, pat_max = st.slider(
-    "Faixa de Patamar (multiplicador da UR)",
-    min_value=2,
-    max_value=5,
-    value=(2, 4),
-    step=1,
-    disabled=not ativar_patamar
-)
+if st.button("Calcular"):
+    if modo == "Bilhetes necessários":
+        n = math.log(objetivo / valor_ur) / math.log(odd)
+        st.success(f"Bilhetes necessários: **{math.ceil(n)}**")
+
+    elif modo == "Odd necessária":
+        odd_req = (objetivo / valor_ur) ** (1 / bilhetes)
+        st.success(f"Odd necessária: **{round(odd_req, 3)}**")
+
+    elif modo == "Valor da UR necessário":
+        ur_req = objetivo / (odd ** bilhetes)
+        st.success(f"Valor da UR necessário: **R$ {round(ur_req, 2)}**")
+
+    elif modo == "Objetivo final alcançado":
+        final = valor_ur * (odd ** bilhetes)
+        st.success(f"Objetivo alcançado: **R$ {round(final, 2)}**")
+
+st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
+
+# =========================================================
+# ========= BACKTEST PARAMÉTRICO =========
+# =========================================================
+st.markdown("<div class='section-title'>🔍 Backtest Paramétrico (Top 10)</div>", unsafe_allow_html=True)
+
+ur_min, ur_max = st.slider("Faixa Valor da UR", 10, 1000, (100, 300), step=10)
+b_min, b_max = st.slider("Faixa de Bilhetes", 5, 500, (20, 100))
+odd_min, odd_max = st.slider("Faixa de Odds", 1.01, 2.00, (1.30, 1.40), step=0.01)
+pat_min, pat_max = st.slider("Faixa de Patamar (× UR)", 2, 5, (2, 4))
+
+ativar_patamar = st.toggle("Ativar retirada de UR", value=True)
 
 if st.button("Rodar Backtest"):
-    df_com = backtest(valor_ur, bilhetes, odd_min, odd_max, pat_min, pat_max, True)
-    df_sem = backtest(valor_ur, bilhetes, odd_min, odd_max, pat_min, pat_max, False)
+    resultados = []
 
-    st.markdown("### Comparação Automática")
+    for ur, b, o, p in product(
+        range(ur_min, ur_max + 1, 10),
+        range(b_min, b_max + 1),
+        [round(x, 2) for x in frange(odd_min, odd_max, 0.01)],
+        range(pat_min, pat_max + 1)
+    ):
+        final = patrimonio_final(
+            ur, o, b, p if ativar_patamar else None
+        )
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Melhor Patrimônio (com proteção)", f"R$ {df_com.iloc[0]['Patrimônio Final']}")
-    with col2:
-        st.metric("Melhor Patrimônio (sem proteção)", f"R$ {df_sem.iloc[0]['Patrimônio Final']}")
+        resultados.append({
+            "Patrimônio Final": round(final, 2),
+            "Valor UR": ur,
+            "Bilhetes": b,
+            "Odd": o,
+            "Patamar": p if ativar_patamar else "—"
+        })
 
-st.markdown("</div>", unsafe_allow_html=True)
+    df = pd.DataFrame(resultados)
+    df = df.sort_values(by="Patrimônio Final", ascending=False).head(10)
+    df.insert(0, "Posição", range(1, len(df) + 1))
+
+    st.dataframe(df, use_container_width=True)
