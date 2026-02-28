@@ -12,7 +12,7 @@ if os.path.exists("logo_vortex.png"):
     st.image("logo_vortex.png", width=200)
 
 st.title("Vortex Investimentos")
-st.subheader("Método Vortex ARC – Engenharia de Risco")
+st.subheader("Vortex BET Hunter")
 
 # =========================
 # FUNÇÃO OBJETIVO FINAL
