@@ -8,8 +8,30 @@ import math
 # =========================
 st.set_page_config(page_title="Vortex Investimentos", layout="centered")
 
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #000000;
+        color: #FFFFFF;
+    }
+
+    /* Ajuste de textos */
+    h1, h2, h3, h4, h5, h6, p, span, label {
+        color: #FFFFFF !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 if os.path.exists("logo_vortex.png"):
-    st.image("logo_vortex.png", width=200)
+    st.markdown(
+        "<div style='text-align: center;'>"
+        "<img src='logo_vortex.png' width='140'>"
+        "</div>",
+        unsafe_allow_html=True
+    )
 
 st.title("Vortex Investimentos")
 st.subheader("Vortex Bet Hunter")
