@@ -9,19 +9,53 @@ import base64
 st.set_page_config(page_title="Vortex Bet", layout="centered")
 
 # =========================================================
-# CSS
+# CSS – LAYOUT & TIPOGRAFIA
 # =========================================================
 st.markdown("""
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&display=swap');
+
+:root {
+    --space-sm: 18px;
+    --space-md: 32px;
+    --space-lg: 44px; /* +10% */
+}
+
 .stApp {
     background-color: #000000;
     color: #FFFFFF;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.header-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-top: calc(var(--space-md) * 1.1); /* +10% da distância da logo */
+}
+
+.header-title {
+    font-size: 30px;
+    font-weight: 200; /* mais fina e estreita */
+    margin: 0;
+}
+
+.header-subtitle {
+    font-size: 16px;
+    font-weight: 300;
+    color: #9A9A9A;
+    margin-top: 6px;
+}
+
+.section-spacing {
+    margin-top: calc(var(--space-lg) * 1.1); /* +10% entre subtítulo e cálculo */
 }
 </style>
 """, unsafe_allow_html=True)
 
 # =========================================================
-# LOGO
+# LOGO (INALTERADA)
 # =========================================================
 def mostrar_logo_centralizada(caminho, largura=140):
     with open(caminho, "rb") as f:
@@ -36,11 +70,20 @@ def mostrar_logo_centralizada(caminho, largura=140):
 if os.path.exists("logo_vortex.png"):
     mostrar_logo_centralizada("logo_vortex.png")
 
-st.markdown("## Vortex Bet Hunter")
+# =========================================================
+# TÍTULO + SUBTÍTULO (NOVO DESIGN)
+# =========================================================
+st.markdown("""
+<div class="header-wrapper">
+    <div class="header-title">Vortex Bet</div>
+    <div class="header-subtitle">Vortex Bet Hunter</div>
+</div>
+""", unsafe_allow_html=True)
 
 # =========================================================
-# CÁLCULO DO OBJETIVO (renomeado, lógica intacta)
+# CÁLCULO DO OBJETIVO
 # =========================================================
+st.markdown('<div class="section-spacing"></div>', unsafe_allow_html=True)
 st.markdown("### 🎯 Cálculo do Objetivo")
 
 modo = st.selectbox(
@@ -51,33 +94,16 @@ modo = st.selectbox(
 valor_ur = odd = objetivo = bilhetes = None
 
 if modo != "Valor da UR":
-    valor_ur = st.number_input(
-        "Valor da UR (R$)",
-        min_value=1,
-        value=100
-    )
+    valor_ur = st.number_input("Valor da UR (R$)", min_value=1, value=100)
 
 if modo != "Odd":
-    odd = st.number_input(
-        "Odd",
-        min_value=1.01,
-        step=0.01,
-        value=1.33
-    )
+    odd = st.number_input("Odd", min_value=1.01, step=0.01, value=1.33)
 
 if modo != "Objetivo Final":
-    objetivo = st.number_input(
-        "Objetivo (R$)",
-        min_value=1,
-        value=1000
-    )
+    objetivo = st.number_input("Objetivo (R$)", min_value=1, value=1000)
 
 if modo != "Bilhetes":
-    bilhetes = st.number_input(
-        "Quantidade de Bilhetes",
-        min_value=1,
-        value=10
-    )
+    bilhetes = st.number_input("Quantidade de Bilhetes", min_value=1, value=10)
 
 if st.button("Calcular"):
     if modo == "Bilhetes":
