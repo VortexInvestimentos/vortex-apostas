@@ -130,37 +130,39 @@ if ativar_patamar:
 # =========================================================
 if st.button("Calcular"):
 
+    # ---------- cálculo base ----------
     if modo == "Bilhetes":
         n = math.log(objetivo / valor_ur) / math.log(odd)
         bil = math.ceil(n)
+        resultado_bruto = valor_ur * (odd ** bil)
         st.success(f"Bilhetes necessários: **{bil}**")
-        resultado_final = valor_ur * (odd ** bil)
 
     elif modo == "Valor da UR":
         ur = objetivo / (odd ** bilhetes)
+        resultado_bruto = objetivo
         st.success(f"Valor da UR necessário: **R$ {ur:.2f}**")
-        resultado_final = objetivo
 
     elif modo == "Odd":
         o = (objetivo / valor_ur) ** (1 / bilhetes)
+        resultado_bruto = objetivo
         st.success(f"Odd necessária: **{o:.4f}**")
-        resultado_final = objetivo
 
     elif modo == "Objetivo Final":
-        resultado_final = valor_ur * (odd ** bilhetes)
-        st.success(f"Objetivo atingido: **R$ {resultado_final:.2f}**")
+        resultado_bruto = valor_ur * (odd ** bilhetes)
+        st.success(f"Resultado bruto: **R$ {resultado_bruto:.2f}**")
 
-    # =====================================================
-    # CÁLCULO DE URs FILHOTES (INFORMATIVO)
-    # =====================================================
+    # ---------- patamar / proteção ----------
     if ativar_patamar and multiplicador_patamar:
         valor_patamar = valor_ur * multiplicador_patamar
-        urs_criadas = int(resultado_final // valor_patamar)
+        urs_filhotes = int(resultado_bruto // valor_patamar)
+        capital_protegido = urs_filhotes * valor_ur
+        resultado_em_risco = resultado_bruto - capital_protegido
 
         st.markdown(
             f"<div class='soft-validation'>"
-            f"URs filhotes geradas: <strong>{urs_criadas}</strong> "
-            f"(1 UR retirada a cada {multiplicador_patamar}×UR)."
+            f"URs filhotes geradas: <strong>{urs_filhotes}</strong><br>"
+            f"Capital protegido: <strong>R$ {capital_protegido:.2f}</strong><br>"
+            f"Resultado ainda em risco: <strong>R$ {resultado_em_risco:.2f}</strong>"
             f"</div>",
             unsafe_allow_html=True
         )
