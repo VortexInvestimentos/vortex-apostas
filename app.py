@@ -10,69 +10,76 @@ import base64
 st.set_page_config(page_title="Vortex Bet", layout="centered")
 
 # =========================================================
-# CSS GLOBAL
+# CSS
 # =========================================================
-st.markdown(
-    """
-    <style>
-    .stApp {
-        background-color: #000000;
-        color: #FFFFFF;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown("""
+<style>
+.stApp {
+    background-color: #000000;
+    color: #FFFFFF;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # =========================================================
-# FUNÇÃO PARA LOGO CENTRALIZADA
+# LOGO
 # =========================================================
 def mostrar_logo_centralizada(caminho, largura=140):
     with open(caminho, "rb") as f:
         dados = base64.b64encode(f.read()).decode()
+    st.markdown(
+        f"<div style='display:flex;justify-content:center;'><img src='data:image/png;base64,{dados}' width='{largura}'></div>",
+        unsafe_allow_html=True
+    )
 
-    html = f"""
-    <div style="display: flex; justify-content: center;">
-        <img src="data:image/png;base64,{dados}" width="{largura}">
-    </div>
-    """
-    st.markdown(html, unsafe_allow_html=True)
-
-# =========================================================
-# HEADER
-# =========================================================
 if os.path.exists("logo_vortex.png"):
-    mostrar_logo_centralizada("logo_vortex.png", largura=140)
+    mostrar_logo_centralizada("logo_vortex.png")
 
 st.markdown("## Vortex Bet Hunter")
 
 # =========================================================
-# FUNÇÃO – OBJETIVO FINAL (RESTAURADA, INTACTA)
+# OBJETIVO FINAL – FLEXÍVEL (INALTERADO)
 # =========================================================
-def calcular_bilhetes_para_objetivo(valor_ur, odd, objetivo):
-    if odd <= 1 or objetivo <= valor_ur:
-        return 0
-    n = math.log(objetivo / valor_ur) / math.log(odd)
-    return math.ceil(n)
+st.markdown("### 🎯 Objetivo Final")
+
+modo = st.selectbox(
+    "Qual variável deseja calcular?",
+    ["Bilhetes", "Valor da UR", "Odd", "Objetivo Final"]
+)
+
+valor_ur = odd = objetivo = bilhetes = None
+
+if modo != "Valor da UR":
+    valor_ur = st.number_input("Valor da UR (R$)", min_value=1, value=100)
+
+if modo != "Odd":
+    odd = st.number_input("Odd", min_value=1.01, step=0.01, value=1.33)
+
+if modo != "Objetivo Final":
+    objetivo = st.number_input("Objetivo Final (R$)", min_value=1, value=1000)
+
+if modo != "Bilhetes":
+    bilhetes = st.number_input("Quantidade de Bilhetes", min_value=1, value=10)
+
+if st.button("Calcular"):
+    if modo == "Bilhetes":
+        n = math.log(objetivo / valor_ur) / math.log(odd)
+        st.success(f"Bilhetes necessários: {math.ceil(n)}")
+
+    elif modo == "Valor da UR":
+        ur = objetivo / (odd ** bilhetes)
+        st.success(f"Valor da UR necessário: R$ {ur:.2f}")
+
+    elif modo == "Odd":
+        o = (objetivo / valor_ur) ** (1 / bilhetes)
+        st.success(f"Odd necessária: {o:.4f}")
+
+    elif modo == "Objetivo Final":
+        obj = valor_ur * (odd ** bilhetes)
+        st.success(f"Objetivo final atingido: R$ {obj:.2f}")
 
 # =========================================================
-# SEÇÃO – OBJETIVO FINAL (RESTAURADA, INTACTA)
-# =========================================================
-st.markdown("### 🎯 Cálculo de Objetivo Final")
-
-ativar_objetivo = st.toggle("Ativar cálculo de objetivo final")
-
-if ativar_objetivo:
-    objetivo = st.number_input("Objetivo final (R$)", min_value=1, step=1, value=1000)
-    valor_ur_obj = st.number_input("Valor da UR (R$)", min_value=1, step=1, value=100)
-    odd_fixa = st.number_input("Odd fixa", min_value=1.01, step=0.01, value=1.33)
-
-    if st.button("Calcular bilhetes necessários"):
-        n = calcular_bilhetes_para_objetivo(valor_ur_obj, odd_fixa, objetivo)
-        st.success(f"São necessários **{n} bilhetes vencedores consecutivos**.")
-
-# =========================================================
-# CORE ENGINE (INALTERADO NA LÓGICA)
+# CORE ENGINE (INALTERADO)
 # =========================================================
 def rodar_cenario(valor_ur, odd, bilhetes, patamar, ativar_patamar):
     saldo = valor_ur
@@ -93,7 +100,7 @@ def frange(start, stop, step):
         start += step
 
 # =========================================================
-# FUNÇÕES DE SCORE (NOVAS – BACKTEST)
+# FUNÇÕES DE SCORE (NOVAS)
 # =========================================================
 def score_fragilidade(patrimonio, ur, bilhetes, odd):
     fragilidade = ur * bilhetes * (odd - 1)
@@ -110,12 +117,12 @@ def score_utilidade_log(patrimonio, ur, bilhetes):
     return math.log(patrimonio / capital_exposto)
 
 # =========================================================
-# BACKTEST EVOLUÍDO
+# BACKTEST INTELIGENTE (SUBSTITUI O ANTIGO)
 # =========================================================
-st.markdown("### 🔍 Backtest Paramétrico Inteligente")
+st.markdown("### 🔍 Backtest Paramétrico (Top 10 por Critério)")
 
 criterio = st.selectbox(
-    "Critério de Avaliação do Backtest",
+    "Critério de Avaliação",
     [
         "Fragilidade",
         "Retorno / Risco Implícito",
@@ -123,14 +130,13 @@ criterio = st.selectbox(
     ]
 )
 
-ur_min, ur_max = st.slider("Faixa de UR", 10, 1000, (100, 300), step=10)
-bil_min, bil_max = st.slider("Faixa de Bilhetes", 5, 300, (20, 60), step=1)
-odd_min, odd_max = st.slider("Faixa de Odds", 1.01, 3.00, (1.30, 1.40), step=0.01)
+ur_min, ur_max = st.slider("Faixa UR", 10, 1000, (100, 300), step=10)
+bil_min, bil_max = st.slider("Faixa Bilhetes", 5, 200, (20, 60), step=1)
+odd_min, odd_max = st.slider("Faixa Odds", 1.01, 3.00, (1.30, 1.40), step=0.01)
 
 ativar_patamar = st.toggle("Ativar Patamar", True)
-
 pat_min, pat_max = st.slider(
-    "Faixa de Patamar (×UR)",
+    "Faixa Patamar (×UR)",
     2, 6, (2, 4),
     step=1,
     disabled=not ativar_patamar
@@ -154,7 +160,7 @@ if st.button("Rodar Backtest"):
 
                     registro = {
                         "Score": round(score, 6),
-                        "Patrimônio Final (R$)": patrimonio,
+                        "Patrimônio Final": patrimonio,
                         "UR": ur,
                         "Bilhetes": bil,
                         "Odd": odd,
