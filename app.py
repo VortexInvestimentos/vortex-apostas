@@ -95,77 +95,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# INICIALIZAR CONFIGS
-# =========================================================
-try:
-    configs
-except NameError:
-    configs = {"favoritos": {}}
-
-# =========================================================
-# FUNÇÃO SALVAR CONFIGURAÇÕES
-# =========================================================
-def salvar_configs(configs_para_salvar):
-    import json
-    with open("configs.json", "w") as f:
-        json.dump(configs_para_salvar, f)
-
-# =========================================================
-# SELEÇÃO DE PRESETS / FAVORITOS
-# =========================================================
-presets_fixos = {
-    "Conservador": {"modo": "Bilhetes", "valor_ur": 50, "odd": 1.25, "objetivo": 500, "bilhetes": 10, "ativar_patamar": True, "patamar": (2,3)},
-    "Moderado": {"modo": "Bilhetes", "valor_ur": 100, "odd": 1.33, "objetivo": 1000, "bilhetes": 10, "ativar_patamar": True, "patamar": (3,4)},
-    "Agressivo": {"modo": "Bilhetes", "valor_ur": 200, "odd": 1.5, "objetivo": 2000, "bilhetes": 10, "ativar_patamar": True, "patamar": (3,5)}
-}
-
-favoritos_usuario = configs.get("favoritos", {})
-
-# Combinar presets fixos + favoritos (apenas nomes)
-opcoes_presets = list(presets_fixos.keys()) + list(favoritos_usuario.keys())
-
-# Selectbox com cores diferentes usando markdown
-preset_selecionado = st.selectbox(
-    "🔹 Carregar preset ou favorito:",
-    ["Nenhum"] + opcoes_presets,
-    key="preset_selecionado",
-    format_func=lambda x: f"**{x}**" if x in presets_fixos else x
-)
-
-if preset_selecionado != "Nenhum":
-    # Detectar se é fixo ou favorito
-    if preset_selecionado in presets_fixos:
-        nome = preset_selecionado
-        dados = presets_fixos[nome]
-        cor_titulo = "gold"
-    else:
-        nome = preset_selecionado
-        dados = favoritos_usuario[nome]
-        cor_titulo = "white"
-
-    # Preencher inputs
-    st.session_state["modo"] = dados["modo"]
-    st.session_state["valor_ur"] = dados["valor_ur"]
-    st.session_state["odd"] = dados["odd"]
-    st.session_state["objetivo"] = dados["objetivo"]
-    st.session_state["bilhetes"] = dados["bilhetes"]
-    st.session_state["ativar_patamar"] = dados.get("ativar_patamar", False)
-    pat = dados.get("patamar")
-    if pat:
-        st.session_state["patamar_intervalo"] = pat
-
-    # Exibir título colorido do preset/favorito
-    st.markdown(f"<h4 style='color:{cor_titulo}'>{nome}</h4>", unsafe_allow_html=True)
-
-    # Botão de excluir só aparece se for favorito
-    if preset_selecionado not in presets_fixos:
-        if st.button(f"Excluir favorito '{nome}'"):
-            del configs["favoritos"][nome]
-            salvar_configs(configs)
-            st.success(f"Favorito '{nome}' excluído com sucesso.")
-            st.experimental_rerun()  # Recarrega a página para atualizar a lista
-
-# =========================================================
 # CÁLCULO DO OBJETIVO
 # =========================================================
 st.markdown("""
@@ -325,30 +254,4 @@ if st.button("Calcular", key="btn_calcular"):
                 f"</div>",
                 unsafe_allow_html=True
             )
-
         st.markdown("</div>", unsafe_allow_html=True)
-
-# =========================================================
-# SALVAR CONFIGURAÇÃO
-# =========================================================
-if calculado:
-
-    st.markdown("<div class='small-title'>💾 Salvar configuração</div>", unsafe_allow_html=True)
-
-    nome_fav = st.text_input("Nome da configuração", key="nome_favorito")
-
-    if st.button("Salvar configuração", key="btn_salvar"):
-
-        # Salva ou atualiza favoritos (não altera presets fixos)
-        configs["favoritos"][nome_fav] = {
-            "modo": modo,
-            "valor_ur": valor_ur,
-            "odd": odd,
-            "objetivo": objetivo,
-            "bilhetes": bilhetes,
-            "ativar_patamar": ativar_patamar,
-            "patamar": (pat_min, pat_max) if ativar_patamar else None
-        }
-
-        salvar_configs(configs)
-        st.success("Configuração salva com sucesso.")
