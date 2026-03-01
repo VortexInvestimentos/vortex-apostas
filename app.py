@@ -46,14 +46,12 @@ st.markdown("""
     margin-top: 48px;
 }
 
-/* 🔽 TÍTULO DO CÁLCULO – menor e mais fino */
 .calc-title {
     font-size: 20px;
     font-weight: 300;
     margin-bottom: 12px;
 }
 
-/* 🔽 VALIDAÇÕES SUAVES – SEMPRE VISÍVEIS */
 .soft-validation {
     margin-top: 6px;
     font-size: 13px;
@@ -63,7 +61,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# LOGO (INALTERADA)
+# LOGO
 # =========================================================
 def mostrar_logo_centralizada(caminho, largura=140):
     with open(caminho, "rb") as f:
@@ -79,7 +77,7 @@ if os.path.exists("logo_vortex.png"):
     mostrar_logo_centralizada("logo_vortex.png")
 
 # =========================================================
-# TÍTULO + SUBTÍTULO
+# TÍTULO
 # =========================================================
 st.markdown("""
 <div class="header-wrapper">
@@ -114,59 +112,55 @@ if modo != "Bilhetes":
     bilhetes = st.number_input("Quantidade de Bilhetes", min_value=1, value=10)
 
 # =========================================================
-# CÁLCULO + VALIDAÇÕES SUAVES (CORRIGIDAS)
+# PATAMAR – UR FILHOTE
+# =========================================================
+ativar_patamar = st.checkbox("Ativar geração de UR filhote (patamar)")
+
+multiplicador_patamar = None
+if ativar_patamar:
+    multiplicador_patamar = st.number_input(
+        "Multiplicador do patamar (×UR)",
+        min_value=1,
+        step=1,
+        value=3
+    )
+
+# =========================================================
+# CÁLCULO
 # =========================================================
 if st.button("Calcular"):
 
     if modo == "Bilhetes":
         n = math.log(objetivo / valor_ur) / math.log(odd)
-        resultado = math.ceil(n)
-        st.success(f"Bilhetes necessários: **{resultado}**")
-
-        if resultado <= 5:
-            texto = "Sequência curta de acertos consecutivos."
-        elif resultado <= 15:
-            texto = "Exige consistência ao longo de várias tentativas."
-        else:
-            texto = "Depende de uma sequência longa sem falhas."
-
-        st.markdown(f"<div class='soft-validation'>{texto}</div>", unsafe_allow_html=True)
+        bil = math.ceil(n)
+        st.success(f"Bilhetes necessários: **{bil}**")
+        resultado_final = valor_ur * (odd ** bil)
 
     elif modo == "Valor da UR":
         ur = objetivo / (odd ** bilhetes)
         st.success(f"Valor da UR necessário: **R$ {ur:.2f}**")
-
-        if ur <= valor_ur:
-            texto = "Exposição por bilhete menor que a referência atual."
-        elif ur <= valor_ur * 2:
-            texto = "Exposição por bilhete moderadamente maior."
-        else:
-            texto = "Exposição elevada concentrada em cada tentativa."
-
-        st.markdown(f"<div class='soft-validation'>{texto}</div>", unsafe_allow_html=True)
+        resultado_final = objetivo
 
     elif modo == "Odd":
         o = (objetivo / valor_ur) ** (1 / bilhetes)
         st.success(f"Odd necessária: **{o:.4f}**")
-
-        if o <= 1.20:
-            texto = "Evento de alta probabilidade, exige maior repetição."
-        elif o <= 1.60:
-            texto = "Evento de dificuldade intermediária."
-        else:
-            texto = "Evento menos provável de ocorrer."
-
-        st.markdown(f"<div class='soft-validation'>{texto}</div>", unsafe_allow_html=True)
+        resultado_final = objetivo
 
     elif modo == "Objetivo Final":
-        obj = valor_ur * (odd ** bilhetes)
-        st.success(f"Objetivo atingido: **R$ {obj:.2f}**")
+        resultado_final = valor_ur * (odd ** bilhetes)
+        st.success(f"Objetivo atingido: **R$ {resultado_final:.2f}**")
 
-        if bilhetes <= 5:
-            texto = "Crescimento rápido com poucas repetições."
-        elif bilhetes <= 15:
-            texto = "Crescimento gradual ao longo das repetições."
-        else:
-            texto = "Crescimento depende de repetição longa sem falhas."
+    # =====================================================
+    # CÁLCULO DE URs FILHOTES (INFORMATIVO)
+    # =====================================================
+    if ativar_patamar and multiplicador_patamar:
+        valor_patamar = valor_ur * multiplicador_patamar
+        urs_criadas = int(resultado_final // valor_patamar)
 
-        st.markdown(f"<div class='soft-validation'>{texto}</div>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='soft-validation'>"
+            f"URs filhotes geradas: <strong>{urs_criadas}</strong> "
+            f"(1 UR retirada a cada {multiplicador_patamar}×UR)."
+            f"</div>",
+            unsafe_allow_html=True
+        )
