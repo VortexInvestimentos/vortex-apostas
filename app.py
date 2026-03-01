@@ -53,9 +53,17 @@ st.markdown("""
 }
 
 .soft-validation {
-    margin-top: 6px;
+    margin-top: 8px;
     font-size: 13px;
     color: #9A9A9A;
+}
+
+.compare-box {
+    margin-top: 14px;
+    padding: 10px;
+    border: 1px solid #222222;
+    border-radius: 8px;
+    background-color: #0E0E0E;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -112,25 +120,31 @@ if modo != "Bilhetes":
     bilhetes = st.number_input("Quantidade de Bilhetes", min_value=1, value=10)
 
 # =========================================================
-# PATAMAR – UR FILHOTE
+# PATAMAR – COMPARAÇÃO
 # =========================================================
 ativar_patamar = st.checkbox("Ativar geração de UR filhote (patamar)")
 
-multiplicador_patamar = None
+comparar_patamares = False
+patamar_a = patamar_b = None
+
 if ativar_patamar:
-    multiplicador_patamar = st.number_input(
-        "Multiplicador do patamar (×UR)",
-        min_value=1,
-        step=1,
-        value=3
-    )
+    comparar_patamares = st.checkbox("Comparar dois patamares")
+
+    if comparar_patamares:
+        col_a, col_b = st.columns(2)
+        with col_a:
+            patamar_a = st.number_input("Patamar A (×UR)", min_value=1, step=1, value=3)
+        with col_b:
+            patamar_b = st.number_input("Patamar B (×UR)", min_value=1, step=1, value=5)
+    else:
+        patamar_a = st.number_input("Patamar (×UR)", min_value=1, step=1, value=3)
 
 # =========================================================
 # CÁLCULO
 # =========================================================
 if st.button("Calcular"):
 
-    # ---------- cálculo base ----------
+    # ---------- resultado bruto ----------
     if modo == "Bilhetes":
         n = math.log(objetivo / valor_ur) / math.log(odd)
         bil = math.ceil(n)
@@ -138,31 +152,54 @@ if st.button("Calcular"):
         st.success(f"Bilhetes necessários: **{bil}**")
 
     elif modo == "Valor da UR":
-        ur = objetivo / (odd ** bilhetes)
         resultado_bruto = objetivo
+        ur = objetivo / (odd ** bilhetes)
         st.success(f"Valor da UR necessário: **R$ {ur:.2f}**")
 
     elif modo == "Odd":
-        o = (objetivo / valor_ur) ** (1 / bilhetes)
         resultado_bruto = objetivo
+        o = (objetivo / valor_ur) ** (1 / bilhetes)
         st.success(f"Odd necessária: **{o:.4f}**")
 
     elif modo == "Objetivo Final":
         resultado_bruto = valor_ur * (odd ** bilhetes)
         st.success(f"Resultado bruto: **R$ {resultado_bruto:.2f}**")
 
-    # ---------- patamar / proteção ----------
-    if ativar_patamar and multiplicador_patamar:
-        valor_patamar = valor_ur * multiplicador_patamar
-        urs_filhotes = int(resultado_bruto // valor_patamar)
-        capital_protegido = urs_filhotes * valor_ur
-        resultado_em_risco = resultado_bruto - capital_protegido
+    # ---------- função de leitura de patamar ----------
+    def leitura_patamar(multiplicador):
+        valor_patamar = valor_ur * multiplicador
+        urs = int(resultado_bruto // valor_patamar)
+        protegido = urs * valor_ur
+        em_risco = resultado_bruto - protegido
+        pct = (protegido / resultado_bruto) * 100 if resultado_bruto > 0 else 0
+        return urs, protegido, em_risco, pct
 
-        st.markdown(
-            f"<div class='soft-validation'>"
-            f"URs filhotes geradas: <strong>{urs_filhotes}</strong><br>"
-            f"Capital protegido: <strong>R$ {capital_protegido:.2f}</strong><br>"
-            f"Resultado ainda em risco: <strong>R$ {resultado_em_risco:.2f}</strong>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
+    # ---------- exibição ----------
+    if ativar_patamar:
+
+        if comparar_patamares:
+            col1, col2 = st.columns(2)
+
+            for col, label, pat in [(col1, "Patamar A", patamar_a),
+                                     (col2, "Patamar B", patamar_b)]:
+                urs, prot, risco, pct = leitura_patamar(pat)
+                with col:
+                    st.markdown(f"<div class='compare-box'>"
+                                f"<strong>{label} — {pat}× UR</strong><br>"
+                                f"URs filhotes: <strong>{urs}</strong><br>"
+                                f"Capital protegido: <strong>R$ {prot:.2f}</strong><br>"
+                                f"Em risco: <strong>R$ {risco:.2f}</strong><br>"
+                                f"% protegido: <strong>{pct:.1f}%</strong>"
+                                f"</div>", unsafe_allow_html=True)
+
+        else:
+            urs, prot, risco, pct = leitura_patamar(patamar_a)
+            st.markdown(
+                f"<div class='soft-validation'>"
+                f"URs filhotes: <strong>{urs}</strong><br>"
+                f"Capital protegido: <strong>R$ {prot:.2f}</strong><br>"
+                f"Em risco: <strong>R$ {risco:.2f}</strong><br>"
+                f"% protegido: <strong>{pct:.1f}%</strong>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
