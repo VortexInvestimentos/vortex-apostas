@@ -3,7 +3,6 @@ import os
 import math
 import base64
 
-
 # =========================================================
 # CONFIGURAÇÃO DA PÁGINA
 # =========================================================
@@ -70,7 +69,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# LOGO
+# FUNÇÃO LOGO
 # =========================================================
 def mostrar_logo_centralizada(caminho, largura=140):
     with open(caminho, "rb") as f:
@@ -96,47 +95,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# SELEÇÃO DE PRESETS / FAVORITOS
-# =========================================================
-# Presets fixos
-presets_fixos = {
-    "Conservador": {"modo": "Bilhetes", "valor_ur": 50, "odd": 1.25, "objetivo": 500, "bilhetes": 10, "ativar_patamar": True, "patamar": (2,3)},
-    "Moderado": {"modo": "Bilhetes", "valor_ur": 100, "odd": 1.33, "objetivo": 1000, "bilhetes": 10, "ativar_patamar": True, "patamar": (3,4)},
-    "Agressivo": {"modo": "Bilhetes", "valor_ur": 200, "odd": 1.5, "objetivo": 2000, "bilhetes": 10, "ativar_patamar": True, "patamar": (3,5)}
-}
-
-# Carregar favoritos do usuário, se existir
-favoritos_usuario = configs.get("favoritos", {})
-
-# Combinar presets fixos + favoritos do usuário
-opcoes_presets = list(presets_fixos.keys()) + list(favoritos_usuario.keys())
-
-preset_selecionado = st.selectbox(
-    "🔹 Carregar preset ou favorito:",
-    ["Nenhum"] + opcoes_presets,
-    key="preset_selecionado"
-)
-
-# Aplicar valores do preset selecionado
-if preset_selecionado != "Nenhum":
-    if preset_selecionado in presets_fixos:
-        dados = presets_fixos[preset_selecionado]
-    else:
-        dados = favoritos_usuario[preset_selecionado]
-    
-    # Sobrescrever inputs iniciais
-    st.session_state["modo"] = dados["modo"]
-    st.session_state["valor_ur"] = dados["valor_ur"]
-    st.session_state["odd"] = dados["odd"]
-    st.session_state["objetivo"] = dados["objetivo"]
-    st.session_state["bilhetes"] = dados["bilhetes"]
-    st.session_state["ativar_patamar"] = dados.get("ativar_patamar", False)
-    pat = dados.get("patamar")
-    if pat:
-        st.session_state["patamar_intervalo"] = pat
-
-    
-        # =========================================================
 # INICIALIZAR CONFIGS
 # =========================================================
 try:
@@ -145,19 +103,24 @@ except NameError:
     configs = {"favoritos": {}}
 
 # =========================================================
+# FUNÇÃO SALVAR CONFIGURAÇÕES
+# =========================================================
+def salvar_configs(configs_para_salvar):
+    # Salva em arquivo local (pode substituir por JSON ou DB)
+    import json
+    with open("configs.json", "w") as f:
+        json.dump(configs_para_salvar, f)
+
+# =========================================================
 # SELEÇÃO DE PRESETS / FAVORITOS
 # =========================================================
-# Presets fixos
 presets_fixos = {
     "Conservador": {"modo": "Bilhetes", "valor_ur": 50, "odd": 1.25, "objetivo": 500, "bilhetes": 10, "ativar_patamar": True, "patamar": (2,3)},
     "Moderado": {"modo": "Bilhetes", "valor_ur": 100, "odd": 1.33, "objetivo": 1000, "bilhetes": 10, "ativar_patamar": True, "patamar": (3,4)},
     "Agressivo": {"modo": "Bilhetes", "valor_ur": 200, "odd": 1.5, "objetivo": 2000, "bilhetes": 10, "ativar_patamar": True, "patamar": (3,5)}
 }
 
-# Carregar favoritos do usuário, se existir
 favoritos_usuario = configs.get("favoritos", {})
-
-# Combinar presets fixos + favoritos do usuário
 opcoes_presets = list(presets_fixos.keys()) + list(favoritos_usuario.keys())
 
 preset_selecionado = st.selectbox(
@@ -166,14 +129,13 @@ preset_selecionado = st.selectbox(
     key="preset_selecionado"
 )
 
-# Aplicar valores do preset selecionado
 if preset_selecionado != "Nenhum":
     if preset_selecionado in presets_fixos:
         dados = presets_fixos[preset_selecionado]
     else:
         dados = favoritos_usuario[preset_selecionado]
-    
-    # Sobrescrever inputs iniciais
+
+    # Preencher os inputs
     st.session_state["modo"] = dados["modo"]
     st.session_state["valor_ur"] = dados["valor_ur"]
     st.session_state["odd"] = dados["odd"]
@@ -183,10 +145,10 @@ if preset_selecionado != "Nenhum":
     pat = dados.get("patamar")
     if pat:
         st.session_state["patamar_intervalo"] = pat
+
 # =========================================================
 # CÁLCULO DO OBJETIVO
 # =========================================================
-
 st.markdown("""
 <style>
 .calc-title {
@@ -358,6 +320,7 @@ if calculado:
 
     if st.button("Salvar configuração", key="btn_salvar"):
 
+        # Se o nome for igual a preset fixo, apenas salvar como favorito, sobrescrevendo
         configs["favoritos"][nome_fav] = {
             "modo": modo,
             "valor_ur": valor_ur,
