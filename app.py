@@ -120,12 +120,17 @@ if modo != "Bilhetes":
     bilhetes = st.number_input("Quantidade de Bilhetes", min_value=1, value=10)
 
 # =========================================================
-# PATAMAR – INTERVALO
+# PATAMAR – AUTO-DESABILITADO QUANDO NECESSÁRIO
 # =========================================================
-ativar_patamar = st.checkbox("Ativar geração de UR filhote (patamar)")
+patamar_habilitado = modo != "Valor da UR"
+
+ativar_patamar = st.checkbox(
+    "Ativar geração de UR filhote (patamar)",
+    disabled=not patamar_habilitado
+)
 
 pat_min = pat_max = None
-if ativar_patamar:
+if ativar_patamar and patamar_habilitado:
     pat_min, pat_max = st.slider(
         "Intervalo de patamar (×UR)",
         min_value=2,
@@ -161,7 +166,7 @@ if st.button("Calcular"):
         st.success(f"Resultado bruto: **R$ {resultado_bruto:.2f}**")
 
     # ---------- patamares ----------
-    if ativar_patamar:
+    if ativar_patamar and patamar_habilitado:
         for pat in range(pat_min, pat_max + 1):
             valor_patamar = valor_ur * pat
             urs = int(resultado_bruto // valor_patamar)
