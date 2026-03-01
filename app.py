@@ -1,53 +1,6 @@
 # =========================================================
 # CÁLCULO DO OBJETIVO
 # =========================================================
-
-st.markdown("""
-<style>
-.calc-title {
-    font-size: 20px;
-    font-weight: 600;
-    margin-bottom: 12px;
-}
-
-.patamar-container {
-    display: flex;
-    gap: 14px;
-    margin-top: 10px;
-}
-
-.patamar-box {
-    flex: 1;
-    padding: 10px 12px;
-    border-right: 1px solid #3a3a3a;
-    font-size: 12px;
-    color: #b0b0b0;
-}
-
-.patamar-box:last-child {
-    border-right: none;
-}
-
-.soft-validation {
-    font-size: 11px;
-    color: #9a9a9a;
-    margin-top: 4px;
-}
-
-.small-title {
-    font-size: 14px;
-    font-weight: 500;
-    margin-top: 12px;
-}
-
-div[data-testid="stButton"][key="btn_salvar"] button {
-    padding: 4px 10px;
-    font-size: 12px;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
 st.markdown('<div class="section-spacing"></div>', unsafe_allow_html=True)
 st.markdown("<div class='calc-title'>🎯 Cálculo do Objetivo</div>", unsafe_allow_html=True)
 
@@ -72,7 +25,7 @@ if modo != "Bilhetes":
     bilhetes = st.number_input("Quantidade de Bilhetes", min_value=1, value=10, key="bilhetes")
 
 # =========================================================
-# PATAMAR
+# PATAMAR (somente quando faz sentido)
 # =========================================================
 ativar_patamar = False
 pat_min = pat_max = None
@@ -102,27 +55,32 @@ if st.button("Calcular", key="btn_calcular"):
 
     calculado = True
 
+    # ---------------- RESULTADO BASE ----------------
     if modo == "Bilhetes":
         n = math.log(objetivo / valor_ur) / math.log(odd)
         bil = math.ceil(n)
         resultado_bruto = valor_ur * (odd ** bil)
+
         st.success(f"Bilhetes necessários: **{bil}**")
         comentario_base = "Número de repetições necessárias para atingir o objetivo."
 
     elif modo == "Valor da UR":
         ur = objetivo / (odd ** bilhetes)
         resultado_bruto = objetivo
+
         st.success(f"Valor da UR necessário: **R$ {ur:.2f}**")
         comentario_base = "Valor unitário necessário por tentativa."
 
     elif modo == "Odd":
         o = (objetivo / valor_ur) ** (1 / bilhetes)
         resultado_bruto = objetivo
+
         st.success(f"Odd necessária: **{o:.4f}**")
         comentario_base = "Dificuldade mínima do evento para alcançar o objetivo."
 
     elif modo == "Objetivo Final":
         resultado_bruto = valor_ur * (odd ** bilhetes)
+
         st.success(f"Resultado bruto: **R$ {resultado_bruto:.2f}**")
         comentario_base = "Resultado total antes de qualquer proteção."
 
@@ -131,8 +89,9 @@ if st.button("Calcular", key="btn_calcular"):
         unsafe_allow_html=True
     )
 
+    # ---------------- PATAMARES ----------------
     if ativar_patamar:
-        st.markdown("<div class='patamar-container'>", unsafe_allow_html=True)
+        st.markdown("")
 
         for pat in range(pat_min, pat_max + 1):
             valor_patamar = valor_ur * pat
@@ -160,14 +119,13 @@ if st.button("Calcular", key="btn_calcular"):
                 unsafe_allow_html=True
             )
 
-        st.markdown("</div>", unsafe_allow_html=True)
-
 # =========================================================
-# SALVAR CONFIGURAÇÃO
+# SALVAR CONFIGURAÇÃO (APENAS APÓS RESULTADOS)
 # =========================================================
 if calculado:
 
-    st.markdown("<div class='small-title'>💾 Salvar configuração</div>", unsafe_allow_html=True)
+    st.markdown("")
+    st.markdown("### 💾 Salvar configuração")
 
     nome_fav = st.text_input("Nome da configuração", key="nome_favorito")
 
