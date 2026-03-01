@@ -138,7 +138,7 @@ SETS_FIXOS = {
 }
 
 # =========================================================
-# CARREGAR SETS DO JSON
+# PERSISTÊNCIA
 # =========================================================
 def carregar_sets():
     if os.path.exists(ARQUIVO_SETS):
@@ -156,15 +156,19 @@ if "sets" not in st.session_state:
     st.session_state.sets = carregar_sets()
 
 # =========================================================
-# SELEÇÃO DE SET
+# BLOCO DE SETS (CARREGAR / SALVAR / EXCLUIR)
 # =========================================================
 st.markdown('<div class="section-spacing"></div>', unsafe_allow_html=True)
 st.markdown("<div class='calc-title'>📦 Sets</div>", unsafe_allow_html=True)
 
-set_nome = st.selectbox("Carregar set", ["—"] + list(st.session_state.sets.keys()))
+nomes_sets = list(st.session_state.sets.keys())
+set_atual = st.selectbox("Selecionar set", ["—"] + nomes_sets)
 
-if set_nome != "—":
-    s = st.session_state.sets[set_nome]
+if set_atual != "—":
+    s = st.session_state.sets[set_atual]
+    cor = "#D4AF37" if s.get("fixo") else "#FFFFFF"
+    st.markdown(f"<strong style='color:{cor}'>{set_atual}</strong>", unsafe_allow_html=True)
+
     st.session_state.modo = s["modo"]
     st.session_state.valor_ur = s["valor_ur"]
     st.session_state.odd = s["odd"]
@@ -172,8 +176,35 @@ if set_nome != "—":
     st.session_state.bilhetes = s["bilhetes"]
     st.session_state.patamar_intervalo = tuple(s["pat"])
 
+nome_novo_set = st.text_input("Nome do set (novo ou para editar)", value=set_atual if set_atual != "—" else "")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.button("💾 Salvar set"):
+        st.session_state.sets[nome_novo_set] = {
+            "fixo": st.session_state.sets.get(nome_novo_set, {}).get("fixo", False),
+            "modo": st.session_state.modo,
+            "valor_ur": st.session_state.valor_ur,
+            "odd": st.session_state.odd,
+            "objetivo": st.session_state.objetivo,
+            "bilhetes": st.session_state.bilhetes,
+            "pat": list(st.session_state.patamar_intervalo)
+        }
+        salvar_sets(st.session_state.sets)
+        st.success("Set salvo com sucesso.")
+        st.experimental_rerun()
+
+with col2:
+    if set_atual != "—" and not st.session_state.sets[set_atual].get("fixo"):
+        if st.button("🗑 Excluir set"):
+            del st.session_state.sets[set_atual]
+            salvar_sets(st.session_state.sets)
+            st.success("Set excluído.")
+            st.experimental_rerun()
+
 # =========================================================
-# NÚCLEO MATEMÁTICO (INALTERADO)
+# NÚCLEO MATEMÁTICO
 # =========================================================
 def calc_bilhetes(valor_ur, odd, objetivo):
     n = math.log(objetivo / valor_ur) / math.log(odd)
@@ -213,7 +244,7 @@ def calc_patamares(valor_ur, resultado, pat_min, pat_max):
     return saida
 
 # =========================================================
-# UI – CÁLCULO
+# UI – CÁLCULO (INALTERADO)
 # =========================================================
 st.markdown('<div class="section-spacing"></div>', unsafe_allow_html=True)
 st.markdown("<div class='calc-title'>🎯 Cálculo do Objetivo</div>", unsafe_allow_html=True)
@@ -253,23 +284,16 @@ if modo != "Valor da UR":
             key="patamar_intervalo"
         )
 
-# =========================================================
-# EXECUÇÃO DO CÁLCULO
-# =========================================================
 if st.button("Calcular"):
-
     if modo == "Bilhetes":
         bil, resultado, comentario = calc_bilhetes(valor_ur, odd, objetivo)
         st.success(f"Bilhetes necessários: **{bil}**")
-
     elif modo == "Valor da UR":
         ur, resultado, comentario = calc_ur(odd, bilhetes, objetivo)
         st.success(f"Valor da UR necessário: **R$ {ur:.2f}**")
-
     elif modo == "Odd":
         o, resultado, comentario = calc_odd(valor_ur, bilhetes, objetivo)
         st.success(f"Odd necessária: **{o:.4f}**")
-
     else:
         resultado, comentario = calc_resultado(valor_ur, odd, bilhetes)
         st.success(f"Resultado bruto: **R$ {resultado:.2f}**")
