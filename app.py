@@ -100,39 +100,14 @@ def frange(start, stop, step):
         start += step
 
 # =========================================================
-# FUNÇÕES DE SCORE (NOVAS)
+# BACKTEST BASEADO EM PROBABILIDADE DE RUÍNA (NOVO)
 # =========================================================
-def score_fragilidade(patrimonio, ur, bilhetes, odd):
-    fragilidade = ur * bilhetes * (odd - 1)
-    return patrimonio / fragilidade if fragilidade > 0 else 0
-
-def score_retorno_risco(patrimonio, ur, bilhetes):
-    capital_exposto = ur * bilhetes
-    return patrimonio / capital_exposto if capital_exposto > 0 else 0
-
-def score_utilidade_log(patrimonio, ur, bilhetes):
-    capital_exposto = ur * bilhetes
-    if capital_exposto <= 0 or patrimonio <= 0:
-        return -999
-    return math.log(patrimonio / capital_exposto)
-
-# =========================================================
-# BACKTEST INTELIGENTE (SUBSTITUI O ANTIGO)
-# =========================================================
-st.markdown("### 🔍 Backtest Paramétrico (Top 10 por Critério)")
-
-criterio = st.selectbox(
-    "Critério de Avaliação",
-    [
-        "Fragilidade",
-        "Retorno / Risco Implícito",
-        "Utilidade Logarítmica"
-    ]
-)
+st.markdown("### 🔍 Backtest por Probabilidade de Ruína")
 
 ur_min, ur_max = st.slider("Faixa UR", 10, 1000, (100, 300), step=10)
-bil_min, bil_max = st.slider("Faixa Bilhetes", 5, 200, (20, 60), step=1)
-odd_min, odd_max = st.slider("Faixa Odds", 1.01, 3.00, (1.30, 1.40), step=0.01)
+bil_min, bil_max = st.slider("Faixa Bilhetes", 1, 200, (5, 40), step=1)
+
+odd_min, odd_max = st.slider("Faixa Odds", 1.01, 3.00, (1.30, 1.60), step=0.01)
 
 ativar_patamar = st.toggle("Ativar Patamar", True)
 pat_min, pat_max = st.slider(
@@ -142,34 +117,45 @@ pat_min, pat_max = st.slider(
     disabled=not ativar_patamar
 )
 
+risco_max = st.slider(
+    "Probabilidade máxima de ruína aceitável (%)",
+    min_value=1,
+    max_value=100,
+    value=10,
+    step=1
+)
+
 if st.button("Rodar Backtest"):
-    top10 = []
+    resultados = []
+
+    risco_max_decimal = risco_max / 100
 
     for ur in range(ur_min, ur_max + 1, 10):
         for bil in range(bil_min, bil_max + 1):
             for odd in frange(odd_min, odd_max, 0.01):
+                p_sucesso = (1 / odd) ** bil
+                p_ruina = 1 - p_sucesso
+
+                if p_ruina > risco_max_decimal:
+                    continue  # descarta cenário inviável
+
                 for pat in range(pat_min, pat_max + 1):
                     patrimonio = rodar_cenario(ur, odd, bil, pat, ativar_patamar)
 
-                    if criterio == "Fragilidade":
-                        score = score_fragilidade(patrimonio, ur, bil, odd)
-                    elif criterio == "Retorno / Risco Implícito":
-                        score = score_retorno_risco(patrimonio, ur, bil)
-                    else:
-                        score = score_utilidade_log(patrimonio, ur, bil)
-
-                    registro = {
-                        "Score": round(score, 6),
-                        "Patrimônio Final": patrimonio,
+                    resultados.append({
+                        "Patrimônio Final (R$)": patrimonio,
                         "UR": ur,
                         "Bilhetes": bil,
                         "Odd": odd,
-                        "Patamar": pat if ativar_patamar else "—"
-                    }
+                        "Patamar": pat if ativar_patamar else "—",
+                        "Prob. Sucesso (%)": round(p_sucesso * 100, 2),
+                        "Prob. Ruína (%)": round(p_ruina * 100, 2)
+                    })
 
-                    top10.append(registro)
-                    top10 = sorted(top10, key=lambda x: x["Score"], reverse=True)[:10]
-
-    df = pd.DataFrame(top10)
-    df.index = range(1, len(df) + 1)
-    st.dataframe(df)
+    if resultados:
+        df = pd.DataFrame(resultados)
+        df = df.sort_values(by="Patrimônio Final (R$)", ascending=False).head(10)
+        df.index = range(1, len(df) + 1)
+        st.dataframe(df)
+    else:
+        st.warning("Nenhuma estratégia atende ao limite de risco definido.")
