@@ -53,14 +53,14 @@ st.markdown("""
 }
 
 .soft-validation {
-    margin-top: 8px;
+    margin-top: 6px;
     font-size: 13px;
     color: #9A9A9A;
 }
 
-.compare-box {
+.patamar-box {
     margin-top: 14px;
-    padding: 10px;
+    padding: 12px;
     border: 1px solid #222222;
     border-radius: 8px;
     background-color: #0E0E0E;
@@ -120,24 +120,19 @@ if modo != "Bilhetes":
     bilhetes = st.number_input("Quantidade de Bilhetes", min_value=1, value=10)
 
 # =========================================================
-# PATAMAR – COMPARAÇÃO
+# PATAMAR – INTERVALO
 # =========================================================
 ativar_patamar = st.checkbox("Ativar geração de UR filhote (patamar)")
 
-comparar_patamares = False
-patamar_a = patamar_b = None
-
+pat_min = pat_max = None
 if ativar_patamar:
-    comparar_patamares = st.checkbox("Comparar dois patamares")
-
-    if comparar_patamares:
-        col_a, col_b = st.columns(2)
-        with col_a:
-            patamar_a = st.number_input("Patamar A (×UR)", min_value=1, step=1, value=3)
-        with col_b:
-            patamar_b = st.number_input("Patamar B (×UR)", min_value=1, step=1, value=5)
-    else:
-        patamar_a = st.number_input("Patamar (×UR)", min_value=1, step=1, value=3)
+    pat_min, pat_max = st.slider(
+        "Intervalo de patamar (×UR)",
+        min_value=2,
+        max_value=5,
+        value=(3, 3),
+        step=1
+    )
 
 # =========================================================
 # CÁLCULO
@@ -165,41 +160,30 @@ if st.button("Calcular"):
         resultado_bruto = valor_ur * (odd ** bilhetes)
         st.success(f"Resultado bruto: **R$ {resultado_bruto:.2f}**")
 
-    # ---------- função de leitura de patamar ----------
-    def leitura_patamar(multiplicador):
-        valor_patamar = valor_ur * multiplicador
-        urs = int(resultado_bruto // valor_patamar)
-        protegido = urs * valor_ur
-        em_risco = resultado_bruto - protegido
-        pct = (protegido / resultado_bruto) * 100 if resultado_bruto > 0 else 0
-        return urs, protegido, em_risco, pct
-
-    # ---------- exibição ----------
+    # ---------- patamares ----------
     if ativar_patamar:
+        for pat in range(pat_min, pat_max + 1):
+            valor_patamar = valor_ur * pat
+            urs = int(resultado_bruto // valor_patamar)
+            protegido = urs * valor_ur
+            em_risco = resultado_bruto - protegido
+            pct = (protegido / resultado_bruto) * 100 if resultado_bruto > 0 else 0
 
-        if comparar_patamares:
-            col1, col2 = st.columns(2)
+            if pat == pat_min:
+                comentario = "Proteção mais frequente, com menor capital exposto."
+            elif pat == pat_max:
+                comentario = "Proteção mais espaçada, priorizando crescimento."
+            else:
+                comentario = "Equilíbrio intermediário entre proteção e crescimento."
 
-            for col, label, pat in [(col1, "Patamar A", patamar_a),
-                                     (col2, "Patamar B", patamar_b)]:
-                urs, prot, risco, pct = leitura_patamar(pat)
-                with col:
-                    st.markdown(f"<div class='compare-box'>"
-                                f"<strong>{label} — {pat}× UR</strong><br>"
-                                f"URs filhotes: <strong>{urs}</strong><br>"
-                                f"Capital protegido: <strong>R$ {prot:.2f}</strong><br>"
-                                f"Em risco: <strong>R$ {risco:.2f}</strong><br>"
-                                f"% protegido: <strong>{pct:.1f}%</strong>"
-                                f"</div>", unsafe_allow_html=True)
-
-        else:
-            urs, prot, risco, pct = leitura_patamar(patamar_a)
             st.markdown(
-                f"<div class='soft-validation'>"
+                f"<div class='patamar-box'>"
+                f"<strong>Patamar {pat}× UR</strong><br>"
                 f"URs filhotes: <strong>{urs}</strong><br>"
-                f"Capital protegido: <strong>R$ {prot:.2f}</strong><br>"
-                f"Em risco: <strong>R$ {risco:.2f}</strong><br>"
-                f"% protegido: <strong>{pct:.1f}%</strong>"
+                f"Capital protegido: <strong>R$ {protegido:.2f}</strong><br>"
+                f"Resultado em risco: <strong>R$ {em_risco:.2f}</strong><br>"
+                f"% protegido: <strong>{pct:.1f}%</strong><br>"
+                f"<span class='soft-validation'>{comentario}</span>"
                 f"</div>",
                 unsafe_allow_html=True
             )
