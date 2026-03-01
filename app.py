@@ -106,7 +106,6 @@ except NameError:
 # FUNÇÃO SALVAR CONFIGURAÇÕES
 # =========================================================
 def salvar_configs(configs_para_salvar):
-    # Salva em arquivo local (pode substituir por JSON ou DB)
     import json
     with open("configs.json", "w") as f:
         json.dump(configs_para_salvar, f)
@@ -121,7 +120,9 @@ presets_fixos = {
 }
 
 favoritos_usuario = configs.get("favoritos", {})
-opcoes_presets = list(presets_fixos.keys()) + list(favoritos_usuario.keys())
+
+# Combinar presets fixos + favoritos do usuário com labels
+opcoes_presets = [f"{k} (Preset)" for k in presets_fixos.keys()] + [f"{k} (Favorito)" for k in favoritos_usuario.keys()]
 
 preset_selecionado = st.selectbox(
     "🔹 Carregar preset ou favorito:",
@@ -130,12 +131,15 @@ preset_selecionado = st.selectbox(
 )
 
 if preset_selecionado != "Nenhum":
-    if preset_selecionado in presets_fixos:
-        dados = presets_fixos[preset_selecionado]
+    # Detectar se é fixo ou favorito
+    if preset_selecionado.endswith("(Preset)"):
+        nome = preset_selecionado.replace(" (Preset)", "")
+        dados = presets_fixos[nome]
     else:
-        dados = favoritos_usuario[preset_selecionado]
+        nome = preset_selecionado.replace(" (Favorito)", "")
+        dados = favoritos_usuario[nome]
 
-    # Preencher os inputs
+    # Preencher inputs
     st.session_state["modo"] = dados["modo"]
     st.session_state["valor_ur"] = dados["valor_ur"]
     st.session_state["odd"] = dados["odd"]
@@ -145,6 +149,14 @@ if preset_selecionado != "Nenhum":
     pat = dados.get("patamar")
     if pat:
         st.session_state["patamar_intervalo"] = pat
+
+    # Botão de excluir só aparece se for favorito
+    if not preset_selecionado.endswith("(Preset)"):
+        if st.button(f"Excluir favorito '{nome}'"):
+            del configs["favoritos"][nome]
+            salvar_configs(configs)
+            st.success(f"Favorito '{nome}' excluído com sucesso.")
+            st.experimental_rerun()  # Recarrega a página para atualizar a lista
 
 # =========================================================
 # CÁLCULO DO OBJETIVO
@@ -320,7 +332,7 @@ if calculado:
 
     if st.button("Salvar configuração", key="btn_salvar"):
 
-        # Se o nome for igual a preset fixo, apenas salvar como favorito, sobrescrevendo
+        # Sempre salva ou atualiza nos favoritos, sem duplicar presets fixos
         configs["favoritos"][nome_fav] = {
             "modo": modo,
             "valor_ur": valor_ur,
