@@ -9,7 +9,7 @@ import base64
 st.set_page_config(page_title="Vortex Bet", layout="centered")
 
 # =========================================================
-# CSS – MINIMALISTA
+# CSS – TIPOGRAFIA E ESPAÇAMENTOS
 # =========================================================
 st.markdown("""
 <style>
@@ -26,7 +26,7 @@ st.markdown("""
     flex-direction: column;
     align-items: center;
     text-align: center;
-    margin-top: 36px;
+    margin-top: 40px;
 }
 
 .header-title {
@@ -42,33 +42,14 @@ st.markdown("""
     margin-top: 6px;
 }
 
-.card {
-    background-color: #0E0E0E;
-    border: 1px solid #1F1F1F;
-    border-radius: 12px;
-    padding: 26px;
-    margin-top: 42px;
+.section-spacing {
+    margin-top: 48px;
 }
 
-.card-title {
-    font-size: 20px;
-    font-weight: 300;
-    margin-bottom: 18px;
-}
-
-.card-helper {
+.soft-validation {
+    margin-top: 6px;
     font-size: 13px;
     color: #9A9A9A;
-    margin-bottom: 22px;
-}
-
-.result {
-    margin-top: 18px;
-    padding: 14px;
-    border-radius: 8px;
-    background-color: #111111;
-    border: 1px solid #222222;
-    font-size: 16px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -100,19 +81,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# CARD — CÁLCULO DO OBJETIVO
+# CÁLCULO DO OBJETIVO
 # =========================================================
-st.markdown("""
-<div class="card">
-    <div class="card-title">🎯 Cálculo do Objetivo</div>
-    <div class="card-helper">
-        Escolha o que deseja calcular. Preencha os outros campos e execute o cálculo.
-    </div>
-</div>
-""", unsafe_allow_html=True)
+st.markdown('<div class="section-spacing"></div>', unsafe_allow_html=True)
+st.markdown("### 🎯 Cálculo do Objetivo")
 
 modo = st.selectbox(
-    "O que você deseja calcular?",
+    "Qual variável deseja calcular?",
     ["Bilhetes", "Valor da UR", "Odd", "Objetivo Final"]
 )
 
@@ -130,28 +105,64 @@ if modo != "Objetivo Final":
 if modo != "Bilhetes":
     bilhetes = st.number_input("Quantidade de Bilhetes", min_value=1, value=10)
 
-resultado = None
-
+# =========================================================
+# CÁLCULO + VALIDAÇÕES SUAVES
+# =========================================================
 if st.button("Calcular"):
+
     if modo == "Bilhetes":
         n = math.log(objetivo / valor_ur) / math.log(odd)
-        resultado = f"Bilhetes necessários: {math.ceil(n)}"
+        resultado = math.ceil(n)
+        st.success(f"Bilhetes necessários: **{resultado}**")
+
+        if resultado >= 20:
+            st.markdown(
+                "<div class='soft-validation'>"
+                "Isso exige uma sequência longa de acertos consecutivos."
+                "</div>",
+                unsafe_allow_html=True
+            )
 
     elif modo == "Valor da UR":
         ur = objetivo / (odd ** bilhetes)
-        resultado = f"Valor da UR necessário: R$ {ur:.2f}"
+        st.success(f"Valor da UR necessário: **R$ {ur:.2f}**")
+
+        if ur >= valor_ur * 3:
+            st.markdown(
+                "<div class='soft-validation'>"
+                "Valores altos por bilhete aumentam a exposição por tentativa."
+                "</div>",
+                unsafe_allow_html=True
+            )
 
     elif modo == "Odd":
         o = (objetivo / valor_ur) ** (1 / bilhetes)
-        resultado = f"Odd necessária: {o:.4f}"
+        st.success(f"Odd necessária: **{o:.4f}**")
+
+        if o <= 1.10:
+            st.markdown(
+                "<div class='soft-validation'>"
+                "Odds muito baixas tendem a exigir maior repetição sem falhas."
+                "</div>",
+                unsafe_allow_html=True
+            )
+
+        elif o >= 2.00:
+            st.markdown(
+                "<div class='soft-validation'>"
+                "Odds mais altas representam eventos menos prováveis."
+                "</div>",
+                unsafe_allow_html=True
+            )
 
     elif modo == "Objetivo Final":
         obj = valor_ur * (odd ** bilhetes)
-        resultado = f"Objetivo atingido: R$ {obj:.2f}"
+        st.success(f"Objetivo atingido: **R$ {obj:.2f}**")
 
-if resultado:
-    st.markdown(f"""
-    <div class="result">
-        {resultado}
-    </div>
-    """, unsafe_allow_html=True)
+        if bilhetes >= 20:
+            st.markdown(
+                "<div class='soft-validation'>"
+                "Esse crescimento depende exclusivamente de repetição sem falhas."
+                "</div>",
+                unsafe_allow_html=True
+            )
