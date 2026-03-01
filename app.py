@@ -3,8 +3,6 @@ import pandas as pd
 import os
 import math
 import base64
-from math import comb
-from scipy.stats import binom
 
 # =========================================================
 # CONFIGURAÇÃO DA PÁGINA
@@ -81,11 +79,23 @@ if st.button("Calcular"):
         st.success(f"Objetivo final atingido: R$ {obj:.2f}")
 
 # =====================================================================
-# A PARTIR DAQUI: NOVOS MÓDULOS ESTATÍSTICOS (BACKTEST REMOVIDO)
+# A PARTIR DAQUI: MÓDULOS ESTATÍSTICOS (SEM DEPENDÊNCIAS EXTERNAS)
 # =====================================================================
 
 st.markdown("---")
 st.markdown("## 📊 Análise Estatística para Apostas All-In")
+
+# =========================================================
+# FUNÇÃO BINOMIAL (PYTHON PURO)
+# =========================================================
+def p_value_binomial(k, n, p):
+    """
+    Retorna P(X >= k) para X ~ Binomial(n, p)
+    """
+    prob = 0.0
+    for i in range(k, n + 1):
+        prob += math.comb(n, i) * (p ** i) * ((1 - p) ** (n - i))
+    return prob
 
 # =========================================================
 # MÓDULO 1 — ESPERANÇA MATEMÁTICA (EV)
@@ -110,29 +120,26 @@ odd_edge = st.number_input("Odd", min_value=1.01, value=1.60, key="edge1")
 p_min = 1 / odd_edge
 
 st.write(f"Probabilidade mínima necessária: **{p_min*100:.2f}%**")
-st.write("Se sua taxa real for menor que isso, a aposta é negativa.")
 
 # =========================================================
 # MÓDULO 3 — VALIDAÇÃO ESTATÍSTICA (BINOMIAL)
 # =========================================================
-st.markdown("### 3️⃣ Validação Estatística de Resultados")
+st.markdown("### 3️⃣ Validação Estatística (Teste Binomial)")
 
 n_apostas = st.number_input("Número de apostas", min_value=1, value=100)
 vitorias = st.number_input("Número de acertos", min_value=0, max_value=n_apostas, value=60)
 odd_media = st.number_input("Odd média", min_value=1.01, value=1.60)
 
 p_mercado = 1 / odd_media
+p_value = p_value_binomial(vitorias, n_apostas, p_mercado)
 
-# p-value (probabilidade de obter >= vitórias assumindo p_mercado)
-p_value = 1 - binom.cdf(vitorias - 1, n_apostas, p_mercado)
-
-st.write(f"Probabilidade do mercado (implícita): **{p_mercado*100:.2f}%**")
+st.write(f"Probabilidade implícita do mercado: **{p_mercado*100:.2f}%**")
 st.write(f"**p-value:** {p_value:.6f}")
 
 if p_value < 0.05:
     st.success("Resultado estatisticamente significativo (possível edge).")
 else:
-    st.warning("Resultado compatível com sorte / variância.")
+    st.warning("Resultado compatível com variância / sorte.")
 
 # =========================================================
 # MÓDULO 4 — CRITÉRIO DE KELLY
