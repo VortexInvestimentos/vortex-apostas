@@ -3,6 +3,8 @@ import pandas as pd
 import os
 import math
 import base64
+from math import comb
+from scipy.stats import binom
 
 # =========================================================
 # CONFIGURAÇÃO DA PÁGINA
@@ -38,7 +40,7 @@ if os.path.exists("logo_vortex.png"):
 st.markdown("## Vortex Bet Hunter")
 
 # =========================================================
-# OBJETIVO FINAL – FLEXÍVEL (INALTERADO)
+# OBJETIVO FINAL – FLEXÍVEL (INTACTO)
 # =========================================================
 st.markdown("### 🎯 Objetivo Final")
 
@@ -78,84 +80,74 @@ if st.button("Calcular"):
         obj = valor_ur * (odd ** bilhetes)
         st.success(f"Objetivo final atingido: R$ {obj:.2f}")
 
-# =========================================================
-# CORE ENGINE (INALTERADO)
-# =========================================================
-def rodar_cenario(valor_ur, odd, bilhetes, patamar, ativar_patamar):
-    saldo = valor_ur
-    urs = 0
-    limite = valor_ur * patamar
+# =====================================================================
+# A PARTIR DAQUI: NOVOS MÓDULOS ESTATÍSTICOS (BACKTEST REMOVIDO)
+# =====================================================================
 
-    for _ in range(bilhetes):
-        saldo *= odd
-        if ativar_patamar and saldo >= limite:
-            saldo -= valor_ur
-            urs += 1
-
-    return round(saldo + urs * valor_ur, 2)
-
-def frange(start, stop, step):
-    while start <= stop + 1e-9:
-        yield round(start, 2)
-        start += step
+st.markdown("---")
+st.markdown("## 📊 Análise Estatística para Apostas All-In")
 
 # =========================================================
-# BACKTEST BASEADO EM PROBABILIDADE DE RUÍNA (NOVO)
+# MÓDULO 1 — ESPERANÇA MATEMÁTICA (EV)
 # =========================================================
-st.markdown("### 🔍 Backtest por Probabilidade de Ruína")
+st.markdown("### 1️⃣ Esperança Matemática (EV)")
 
-ur_min, ur_max = st.slider("Faixa UR", 10, 1000, (100, 300), step=10)
-bil_min, bil_max = st.slider("Faixa Bilhetes", 1, 200, (5, 40), step=1)
+odd_ev = st.number_input("Odd da aposta", min_value=1.01, value=1.60, key="ev1")
+p_estimada = st.slider("Probabilidade estimada de acerto (%)", 1, 99, 60, key="ev2") / 100
 
-odd_min, odd_max = st.slider("Faixa Odds", 1.01, 3.00, (1.30, 1.60), step=0.01)
+ganho = odd_ev - 1
+ev = p_estimada * ganho - (1 - p_estimada)
 
-ativar_patamar = st.toggle("Ativar Patamar", True)
-pat_min, pat_max = st.slider(
-    "Faixa Patamar (×UR)",
-    2, 6, (2, 4),
-    step=1,
-    disabled=not ativar_patamar
-)
+st.write(f"**EV:** {ev:.4f}")
+st.write("EV > 0 → aposta teoricamente vantajosa")
 
-risco_max = st.slider(
-    "Probabilidade máxima de ruína aceitável (%)",
-    min_value=1,
-    max_value=100,
-    value=10,
-    step=1
-)
+# =========================================================
+# MÓDULO 2 — EDGE NECESSÁRIO
+# =========================================================
+st.markdown("### 2️⃣ Edge Necessário")
 
-if st.button("Rodar Backtest"):
-    resultados = []
+odd_edge = st.number_input("Odd", min_value=1.01, value=1.60, key="edge1")
+p_min = 1 / odd_edge
 
-    risco_max_decimal = risco_max / 100
+st.write(f"Probabilidade mínima necessária: **{p_min*100:.2f}%**")
+st.write("Se sua taxa real for menor que isso, a aposta é negativa.")
 
-    for ur in range(ur_min, ur_max + 1, 10):
-        for bil in range(bil_min, bil_max + 1):
-            for odd in frange(odd_min, odd_max, 0.01):
-                p_sucesso = (1 / odd) ** bil
-                p_ruina = 1 - p_sucesso
+# =========================================================
+# MÓDULO 3 — VALIDAÇÃO ESTATÍSTICA (BINOMIAL)
+# =========================================================
+st.markdown("### 3️⃣ Validação Estatística de Resultados")
 
-                if p_ruina > risco_max_decimal:
-                    continue  # descarta cenário inviável
+n_apostas = st.number_input("Número de apostas", min_value=1, value=100)
+vitorias = st.number_input("Número de acertos", min_value=0, max_value=n_apostas, value=60)
+odd_media = st.number_input("Odd média", min_value=1.01, value=1.60)
 
-                for pat in range(pat_min, pat_max + 1):
-                    patrimonio = rodar_cenario(ur, odd, bil, pat, ativar_patamar)
+p_mercado = 1 / odd_media
 
-                    resultados.append({
-                        "Patrimônio Final (R$)": patrimonio,
-                        "UR": ur,
-                        "Bilhetes": bil,
-                        "Odd": odd,
-                        "Patamar": pat if ativar_patamar else "—",
-                        "Prob. Sucesso (%)": round(p_sucesso * 100, 2),
-                        "Prob. Ruína (%)": round(p_ruina * 100, 2)
-                    })
+# p-value (probabilidade de obter >= vitórias assumindo p_mercado)
+p_value = 1 - binom.cdf(vitorias - 1, n_apostas, p_mercado)
 
-    if resultados:
-        df = pd.DataFrame(resultados)
-        df = df.sort_values(by="Patrimônio Final (R$)", ascending=False).head(10)
-        df.index = range(1, len(df) + 1)
-        st.dataframe(df)
-    else:
-        st.warning("Nenhuma estratégia atende ao limite de risco definido.")
+st.write(f"Probabilidade do mercado (implícita): **{p_mercado*100:.2f}%**")
+st.write(f"**p-value:** {p_value:.6f}")
+
+if p_value < 0.05:
+    st.success("Resultado estatisticamente significativo (possível edge).")
+else:
+    st.warning("Resultado compatível com sorte / variância.")
+
+# =========================================================
+# MÓDULO 4 — CRITÉRIO DE KELLY
+# =========================================================
+st.markdown("### 4️⃣ Critério de Kelly")
+
+bankroll = st.number_input("Bankroll total (R$)", min_value=1.0, value=1000.0)
+odd_kelly = st.number_input("Odd", min_value=1.01, value=1.60, key="kelly1")
+p_kelly = st.slider("Probabilidade estimada de acerto (%)", 1, 99, 60, key="kelly2") / 100
+
+f_kelly = (p_kelly * odd_kelly - 1) / (odd_kelly - 1)
+
+if f_kelly <= 0:
+    st.error("Kelly ≤ 0 → Não apostar (EV negativo).")
+else:
+    aposta_otima = bankroll * f_kelly
+    st.success(f"Fração de Kelly: **{f_kelly:.2%}**")
+    st.write(f"Aposta teórica ótima: **R$ {aposta_otima:.2f}**")
