@@ -121,23 +121,27 @@ presets_fixos = {
 
 favoritos_usuario = configs.get("favoritos", {})
 
-# Combinar presets fixos + favoritos do usuário com labels
-opcoes_presets = [f"{k} (Preset)" for k in presets_fixos.keys()] + [f"{k} (Favorito)" for k in favoritos_usuario.keys()]
+# Combinar presets fixos + favoritos (apenas nomes)
+opcoes_presets = list(presets_fixos.keys()) + list(favoritos_usuario.keys())
 
+# Selectbox com cores diferentes usando markdown
 preset_selecionado = st.selectbox(
     "🔹 Carregar preset ou favorito:",
     ["Nenhum"] + opcoes_presets,
-    key="preset_selecionado"
+    key="preset_selecionado",
+    format_func=lambda x: f"**{x}**" if x in presets_fixos else x
 )
 
 if preset_selecionado != "Nenhum":
     # Detectar se é fixo ou favorito
-    if preset_selecionado.endswith("(Preset)"):
-        nome = preset_selecionado.replace(" (Preset)", "")
+    if preset_selecionado in presets_fixos:
+        nome = preset_selecionado
         dados = presets_fixos[nome]
+        cor_titulo = "gold"
     else:
-        nome = preset_selecionado.replace(" (Favorito)", "")
+        nome = preset_selecionado
         dados = favoritos_usuario[nome]
+        cor_titulo = "white"
 
     # Preencher inputs
     st.session_state["modo"] = dados["modo"]
@@ -150,8 +154,11 @@ if preset_selecionado != "Nenhum":
     if pat:
         st.session_state["patamar_intervalo"] = pat
 
+    # Exibir título colorido do preset/favorito
+    st.markdown(f"<h4 style='color:{cor_titulo}'>{nome}</h4>", unsafe_allow_html=True)
+
     # Botão de excluir só aparece se for favorito
-    if not preset_selecionado.endswith("(Preset)"):
+    if preset_selecionado not in presets_fixos:
         if st.button(f"Excluir favorito '{nome}'"):
             del configs["favoritos"][nome]
             salvar_configs(configs)
@@ -332,7 +339,7 @@ if calculado:
 
     if st.button("Salvar configuração", key="btn_salvar"):
 
-        # Sempre salva ou atualiza nos favoritos, sem duplicar presets fixos
+        # Salva ou atualiza favoritos (não altera presets fixos)
         configs["favoritos"][nome_fav] = {
             "modo": modo,
             "valor_ur": valor_ur,
