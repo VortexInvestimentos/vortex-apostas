@@ -9,17 +9,11 @@ import base64
 st.set_page_config(page_title="Vortex Bet", layout="centered")
 
 # =========================================================
-# CSS – LAYOUT & TIPOGRAFIA
+# CSS – MINIMALISTA
 # =========================================================
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&display=swap');
-
-:root {
-    --space-sm: 18px;
-    --space-md: 32px;
-    --space-lg: 44px; /* +10% */
-}
 
 .stApp {
     background-color: #000000;
@@ -32,24 +26,49 @@ st.markdown("""
     flex-direction: column;
     align-items: center;
     text-align: center;
-    margin-top: calc(var(--space-md) * 1.1); /* +10% da distância da logo */
+    margin-top: 36px;
 }
 
 .header-title {
     font-size: 30px;
-    font-weight: 200; /* mais fina e estreita */
+    font-weight: 200;
     margin: 0;
 }
 
 .header-subtitle {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 300;
     color: #9A9A9A;
     margin-top: 6px;
 }
 
-.section-spacing {
-    margin-top: calc(var(--space-lg) * 1.1); /* +10% entre subtítulo e cálculo */
+.card {
+    background-color: #0E0E0E;
+    border: 1px solid #1F1F1F;
+    border-radius: 12px;
+    padding: 26px;
+    margin-top: 42px;
+}
+
+.card-title {
+    font-size: 20px;
+    font-weight: 300;
+    margin-bottom: 18px;
+}
+
+.card-helper {
+    font-size: 13px;
+    color: #9A9A9A;
+    margin-bottom: 22px;
+}
+
+.result {
+    margin-top: 18px;
+    padding: 14px;
+    border-radius: 8px;
+    background-color: #111111;
+    border: 1px solid #222222;
+    font-size: 16px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -71,7 +90,7 @@ if os.path.exists("logo_vortex.png"):
     mostrar_logo_centralizada("logo_vortex.png")
 
 # =========================================================
-# TÍTULO + SUBTÍTULO (NOVO DESIGN)
+# TÍTULO + SUBTÍTULO
 # =========================================================
 st.markdown("""
 <div class="header-wrapper">
@@ -81,13 +100,19 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# CÁLCULO DO OBJETIVO
+# CARD — CÁLCULO DO OBJETIVO
 # =========================================================
-st.markdown('<div class="section-spacing"></div>', unsafe_allow_html=True)
-st.markdown("### 🎯 Cálculo do Objetivo")
+st.markdown("""
+<div class="card">
+    <div class="card-title">🎯 Cálculo do Objetivo</div>
+    <div class="card-helper">
+        Escolha o que deseja calcular. Preencha os outros campos e execute o cálculo.
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 modo = st.selectbox(
-    "Qual variável deseja calcular?",
+    "O que você deseja calcular?",
     ["Bilhetes", "Valor da UR", "Odd", "Objetivo Final"]
 )
 
@@ -105,19 +130,28 @@ if modo != "Objetivo Final":
 if modo != "Bilhetes":
     bilhetes = st.number_input("Quantidade de Bilhetes", min_value=1, value=10)
 
+resultado = None
+
 if st.button("Calcular"):
     if modo == "Bilhetes":
         n = math.log(objetivo / valor_ur) / math.log(odd)
-        st.success(f"Bilhetes necessários: **{math.ceil(n)}**")
+        resultado = f"Bilhetes necessários: {math.ceil(n)}"
 
     elif modo == "Valor da UR":
         ur = objetivo / (odd ** bilhetes)
-        st.success(f"Valor da UR necessário: **R$ {ur:.2f}**")
+        resultado = f"Valor da UR necessário: R$ {ur:.2f}"
 
     elif modo == "Odd":
         o = (objetivo / valor_ur) ** (1 / bilhetes)
-        st.success(f"Odd necessária: **{o:.4f}**")
+        resultado = f"Odd necessária: {o:.4f}"
 
     elif modo == "Objetivo Final":
         obj = valor_ur * (odd ** bilhetes)
-        st.success(f"Objetivo atingido: **R$ {obj:.2f}**")
+        resultado = f"Objetivo atingido: R$ {obj:.2f}"
+
+if resultado:
+    st.markdown(f"""
+    <div class="result">
+        {resultado}
+    </div>
+    """, unsafe_allow_html=True)
