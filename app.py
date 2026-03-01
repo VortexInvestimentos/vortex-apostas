@@ -9,30 +9,29 @@ import base64
 st.set_page_config(page_title="Vortex Bet", layout="centered")
 
 # =========================================================
-# CSS – TIPOGRAFIA E ESPAÇAMENTOS
+# CSS GLOBAL
 # =========================================================
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;600&display=swap');
 
 .stApp {
-    background-color: #000000;
-    color: #FFFFFF;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: #000;
+    color: #FFF;
+    font-family: 'Inter', sans-serif;
 }
 
 .header-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
-    text-align: center;
     margin-top: 40px;
+    text-align: center;
 }
 
 .header-title {
     font-size: 30px;
     font-weight: 200;
-    margin: 0;
 }
 
 .header-subtitle {
@@ -48,41 +47,49 @@ st.markdown("""
 
 .calc-title {
     font-size: 20px;
-    font-weight: 300;
+    font-weight: 600;
     margin-bottom: 12px;
 }
 
 .soft-validation {
-    margin-top: 6px;
-    font-size: 13px;
+    font-size: 12px;
     color: #9A9A9A;
+    margin-top: 4px;
+}
+
+.patamar-container {
+    display: flex;
+    gap: 14px;
+    margin-top: 12px;
 }
 
 .patamar-box {
-    margin-top: 14px;
+    flex: 1;
     padding: 12px;
-    border: 1px solid #222222;
+    border: 1px solid #222;
     border-radius: 8px;
     background-color: #0E0E0E;
+    font-size: 12px;
+    color: #B0B0B0;
 }
 </style>
 """, unsafe_allow_html=True)
 
 # =========================================================
-# FUNÇÃO LOGO
+# LOGO
 # =========================================================
-def mostrar_logo_centralizada(caminho, largura=140):
+def mostrar_logo(caminho, largura=140):
     with open(caminho, "rb") as f:
-        dados = base64.b64encode(f.read()).decode()
+        img = base64.b64encode(f.read()).decode()
     st.markdown(
         f"<div style='display:flex;justify-content:center;'>"
-        f"<img src='data:image/png;base64,{dados}' width='{largura}'>"
+        f"<img src='data:image/png;base64,{img}' width='{largura}'>"
         f"</div>",
         unsafe_allow_html=True
     )
 
 if os.path.exists("logo_vortex.png"):
-    mostrar_logo_centralizada("logo_vortex.png")
+    mostrar_logo("logo_vortex.png")
 
 # =========================================================
 # TÍTULO
@@ -97,74 +104,27 @@ st.markdown("""
 # =========================================================
 # CÁLCULO DO OBJETIVO
 # =========================================================
-st.markdown("""
-<style>
-.calc-title {
-    font-size: 20px;
-    font-weight: 600;
-    margin-bottom: 12px;
-}
-
-.patamar-container {
-    display: flex;
-    gap: 14px;
-    margin-top: 10px;
-}
-
-.patamar-box {
-    flex: 1;
-    padding: 10px 12px;
-    border-right: 1px solid #3a3a3a;
-    font-size: 12px;
-    color: #b0b0b0;
-}
-
-.patamar-box:last-child {
-    border-right: none;
-}
-
-.soft-validation {
-    font-size: 11px;
-    color: #9a9a9a;
-    margin-top: 4px;
-}
-
-.small-title {
-    font-size: 14px;
-    font-weight: 500;
-    margin-top: 12px;
-}
-
-div[data-testid="stButton"][key="btn_salvar"] button {
-    padding: 4px 10px;
-    font-size: 12px;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
 st.markdown('<div class="section-spacing"></div>', unsafe_allow_html=True)
 st.markdown("<div class='calc-title'>🎯 Cálculo do Objetivo</div>", unsafe_allow_html=True)
 
 modo = st.selectbox(
     "Qual variável deseja calcular?",
-    ["Bilhetes", "Valor da UR", "Odd", "Objetivo Final"],
-    key="modo"
+    ["Bilhetes", "Valor da UR", "Odd", "Objetivo Final"]
 )
 
 valor_ur = odd = objetivo = bilhetes = None
 
 if modo != "Valor da UR":
-    valor_ur = st.number_input("Valor da UR (R$)", min_value=1, value=100, key="valor_ur")
+    valor_ur = st.number_input("Valor da UR (R$)", min_value=1, value=100)
 
 if modo != "Odd":
-    odd = st.number_input("Odd", min_value=1.01, step=0.01, value=1.33, key="odd")
+    odd = st.number_input("Odd", min_value=1.01, step=0.01, value=1.33)
 
 if modo != "Objetivo Final":
-    objetivo = st.number_input("Objetivo (R$)", min_value=1, value=1000, key="objetivo")
+    objetivo = st.number_input("Objetivo (R$)", min_value=1, value=1000)
 
 if modo != "Bilhetes":
-    bilhetes = st.number_input("Quantidade de Bilhetes", min_value=1, value=10, key="bilhetes")
+    bilhetes = st.number_input("Quantidade de Bilhetes", min_value=1, value=10)
 
 # =========================================================
 # PATAMAR
@@ -173,10 +133,7 @@ ativar_patamar = False
 pat_min = pat_max = None
 
 if modo != "Valor da UR":
-    ativar_patamar = st.checkbox(
-        "Ativar geração de UR filhote (patamar)",
-        key="ativar_patamar"
-    )
+    ativar_patamar = st.checkbox("Ativar geração de UR filhote (patamar)")
 
     if ativar_patamar:
         pat_min, pat_max = st.slider(
@@ -184,74 +141,58 @@ if modo != "Valor da UR":
             min_value=2,
             max_value=5,
             value=(3, 3),
-            step=1,
-            key="patamar_intervalo"
+            step=1
         )
 
 # =========================================================
 # CÁLCULO
 # =========================================================
-calculado = False
-
-if st.button("Calcular", key="btn_calcular"):
-
-    calculado = True
+if st.button("Calcular"):
 
     if modo == "Bilhetes":
-        n = math.log(objetivo / valor_ur) / math.log(odd)
-        bil = math.ceil(n)
-        resultado_bruto = valor_ur * (odd ** bil)
+        bil = math.ceil(math.log(objetivo / valor_ur) / math.log(odd))
+        resultado = valor_ur * (odd ** bil)
         st.success(f"Bilhetes necessários: **{bil}**")
-        comentario_base = "Número de repetições necessárias para atingir o objetivo."
+        comentario = "Número de repetições necessárias para atingir o objetivo."
 
     elif modo == "Valor da UR":
         ur = objetivo / (odd ** bilhetes)
-        resultado_bruto = objetivo
+        resultado = objetivo
         st.success(f"Valor da UR necessário: **R$ {ur:.2f}**")
-        comentario_base = "Valor unitário necessário por tentativa."
+        comentario = "Valor unitário necessário por tentativa."
 
     elif modo == "Odd":
         o = (objetivo / valor_ur) ** (1 / bilhetes)
-        resultado_bruto = objetivo
+        resultado = objetivo
         st.success(f"Odd necessária: **{o:.4f}**")
-        comentario_base = "Dificuldade mínima do evento para alcançar o objetivo."
+        comentario = "Dificuldade mínima do evento para alcançar o objetivo."
 
-    elif modo == "Objetivo Final":
-        resultado_bruto = valor_ur * (odd ** bilhetes)
-        st.success(f"Resultado bruto: **R$ {resultado_bruto:.2f}**")
-        comentario_base = "Resultado total antes de qualquer proteção."
+    else:
+        resultado = valor_ur * (odd ** bilhetes)
+        st.success(f"Resultado bruto: **R$ {resultado:.2f}**")
+        comentario = "Resultado total antes de qualquer proteção."
 
-    st.markdown(
-        f"<div class='soft-validation'>{comentario_base}</div>",
-        unsafe_allow_html=True
-    )
+    st.markdown(f"<div class='soft-validation'>{comentario}</div>", unsafe_allow_html=True)
 
     if ativar_patamar:
         st.markdown("<div class='patamar-container'>", unsafe_allow_html=True)
 
         for pat in range(pat_min, pat_max + 1):
-            valor_patamar = valor_ur * pat
-            urs = int(resultado_bruto // valor_patamar)
+            valor_pat = valor_ur * pat
+            urs = int(resultado // valor_pat)
             protegido = urs * valor_ur
-            em_risco = resultado_bruto - protegido
-            pct = (protegido / resultado_bruto) * 100 if resultado_bruto > 0 else 0
-
-            if pat == pat_min:
-                comentario = "Proteção mais frequente, com menor capital exposto."
-            elif pat == pat_max:
-                comentario = "Proteção mais espaçada, priorizando crescimento."
-            else:
-                comentario = "Equilíbrio intermediário entre proteção e crescimento."
+            risco = resultado - protegido
+            pct = (protegido / resultado) * 100 if resultado else 0
 
             st.markdown(
                 f"<div class='patamar-box'>"
                 f"<strong>Patamar {pat}× UR</strong><br>"
                 f"URs filhotes: <strong>{urs}</strong><br>"
                 f"Capital protegido: <strong>R$ {protegido:.2f}</strong><br>"
-                f"Resultado em risco: <strong>R$ {em_risco:.2f}</strong><br>"
-                f"% protegido: <strong>{pct:.1f}%</strong><br>"
-                f"<span class='soft-validation'>{comentario}</span>"
+                f"Resultado em risco: <strong>R$ {risco:.2f}</strong><br>"
+                f"% protegido: <strong>{pct:.1f}%</strong>"
                 f"</div>",
                 unsafe_allow_html=True
             )
+
         st.markdown("</div>", unsafe_allow_html=True)
