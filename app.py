@@ -46,6 +46,14 @@ st.markdown("""
     margin-top: 48px;
 }
 
+/* 🔽 TÍTULO DO CÁLCULO – menor e mais fino */
+.calc-title {
+    font-size: 20px;
+    font-weight: 300;
+    margin-bottom: 12px;
+}
+
+/* 🔽 VALIDAÇÕES SUAVES – SEMPRE VISÍVEIS */
 .soft-validation {
     margin-top: 6px;
     font-size: 13px;
@@ -84,7 +92,7 @@ st.markdown("""
 # CÁLCULO DO OBJETIVO
 # =========================================================
 st.markdown('<div class="section-spacing"></div>', unsafe_allow_html=True)
-st.markdown("### 🎯 Cálculo do Objetivo")
+st.markdown("<div class='calc-title'>🎯 Cálculo do Objetivo</div>", unsafe_allow_html=True)
 
 modo = st.selectbox(
     "Qual variável deseja calcular?",
@@ -106,7 +114,7 @@ if modo != "Bilhetes":
     bilhetes = st.number_input("Quantidade de Bilhetes", min_value=1, value=10)
 
 # =========================================================
-# CÁLCULO + VALIDAÇÕES SUAVES
+# CÁLCULO + VALIDAÇÕES SUAVES (CORRIGIDAS)
 # =========================================================
 if st.button("Calcular"):
 
@@ -115,54 +123,50 @@ if st.button("Calcular"):
         resultado = math.ceil(n)
         st.success(f"Bilhetes necessários: **{resultado}**")
 
-        if resultado >= 20:
-            st.markdown(
-                "<div class='soft-validation'>"
-                "Isso exige uma sequência longa de acertos consecutivos."
-                "</div>",
-                unsafe_allow_html=True
-            )
+        if resultado <= 5:
+            texto = "Sequência curta de acertos consecutivos."
+        elif resultado <= 15:
+            texto = "Exige consistência ao longo de várias tentativas."
+        else:
+            texto = "Depende de uma sequência longa sem falhas."
+
+        st.markdown(f"<div class='soft-validation'>{texto}</div>", unsafe_allow_html=True)
 
     elif modo == "Valor da UR":
         ur = objetivo / (odd ** bilhetes)
         st.success(f"Valor da UR necessário: **R$ {ur:.2f}**")
 
-        if ur >= valor_ur * 3:
-            st.markdown(
-                "<div class='soft-validation'>"
-                "Valores altos por bilhete aumentam a exposição por tentativa."
-                "</div>",
-                unsafe_allow_html=True
-            )
+        if ur <= valor_ur:
+            texto = "Exposição por bilhete menor que a referência atual."
+        elif ur <= valor_ur * 2:
+            texto = "Exposição por bilhete moderadamente maior."
+        else:
+            texto = "Exposição elevada concentrada em cada tentativa."
+
+        st.markdown(f"<div class='soft-validation'>{texto}</div>", unsafe_allow_html=True)
 
     elif modo == "Odd":
         o = (objetivo / valor_ur) ** (1 / bilhetes)
         st.success(f"Odd necessária: **{o:.4f}**")
 
-        if o <= 1.10:
-            st.markdown(
-                "<div class='soft-validation'>"
-                "Odds muito baixas tendem a exigir maior repetição sem falhas."
-                "</div>",
-                unsafe_allow_html=True
-            )
+        if o <= 1.20:
+            texto = "Evento de alta probabilidade, exige maior repetição."
+        elif o <= 1.60:
+            texto = "Evento de dificuldade intermediária."
+        else:
+            texto = "Evento menos provável de ocorrer."
 
-        elif o >= 2.00:
-            st.markdown(
-                "<div class='soft-validation'>"
-                "Odds mais altas representam eventos menos prováveis."
-                "</div>",
-                unsafe_allow_html=True
-            )
+        st.markdown(f"<div class='soft-validation'>{texto}</div>", unsafe_allow_html=True)
 
     elif modo == "Objetivo Final":
         obj = valor_ur * (odd ** bilhetes)
         st.success(f"Objetivo atingido: **R$ {obj:.2f}**")
 
-        if bilhetes >= 20:
-            st.markdown(
-                "<div class='soft-validation'>"
-                "Esse crescimento depende exclusivamente de repetição sem falhas."
-                "</div>",
-                unsafe_allow_html=True
-            )
+        if bilhetes <= 5:
+            texto = "Crescimento rápido com poucas repetições."
+        elif bilhetes <= 15:
+            texto = "Crescimento gradual ao longo das repetições."
+        else:
+            texto = "Crescimento depende de repetição longa sem falhas."
+
+        st.markdown(f"<div class='soft-validation'>{texto}</div>", unsafe_allow_html=True)
