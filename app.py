@@ -2,17 +2,14 @@ import streamlit as st
 import os
 import math
 import base64
-import json
 
 # =========================================================
 # CONFIGURAÇÃO DA PÁGINA
 # =========================================================
 st.set_page_config(page_title="Vortex Bet", layout="centered")
 
-ARQUIVO_SETS = "sets.json"
-
 # =========================================================
-# CSS GLOBAL
+# CSS
 # =========================================================
 st.markdown("""
 <style>
@@ -105,106 +102,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# SETS FIXOS
-# =========================================================
-SETS_FIXOS = {
-    "Conservador": {
-        "fixo": True,
-        "modo": "Bilhetes",
-        "valor_ur": 50,
-        "odd": 1.25,
-        "objetivo": 500,
-        "bilhetes": 10,
-        "pat": [2, 3]
-    },
-    "Moderado": {
-        "fixo": True,
-        "modo": "Bilhetes",
-        "valor_ur": 100,
-        "odd": 1.33,
-        "objetivo": 1000,
-        "bilhetes": 10,
-        "pat": [3, 4]
-    },
-    "Agressivo": {
-        "fixo": True,
-        "modo": "Bilhetes",
-        "valor_ur": 200,
-        "odd": 1.50,
-        "objetivo": 2000,
-        "bilhetes": 10,
-        "pat": [3, 5]
-    }
-}
-
-# =========================================================
-# PERSISTÊNCIA
-# =========================================================
-def carregar_sets():
-    if os.path.exists(ARQUIVO_SETS):
-        with open(ARQUIVO_SETS, "r") as f:
-            dados = json.load(f)
-            return {**SETS_FIXOS, **dados}
-    return dict(SETS_FIXOS)
-
-def salvar_sets(sets):
-    dados = {k: v for k, v in sets.items() if not v.get("fixo")}
-    with open(ARQUIVO_SETS, "w") as f:
-        json.dump(dados, f, indent=4)
-
-if "sets" not in st.session_state:
-    st.session_state.sets = carregar_sets()
-
-# =========================================================
-# BLOCO DE SETS (CARREGAR / SALVAR / EXCLUIR)
-# =========================================================
-st.markdown('<div class="section-spacing"></div>', unsafe_allow_html=True)
-st.markdown("<div class='calc-title'>📦 Sets</div>", unsafe_allow_html=True)
-
-nomes_sets = list(st.session_state.sets.keys())
-set_atual = st.selectbox("Selecionar set", ["—"] + nomes_sets)
-
-if set_atual != "—":
-    s = st.session_state.sets[set_atual]
-    cor = "#D4AF37" if s.get("fixo") else "#FFFFFF"
-    st.markdown(f"<strong style='color:{cor}'>{set_atual}</strong>", unsafe_allow_html=True)
-
-    st.session_state.modo = s["modo"]
-    st.session_state.valor_ur = s["valor_ur"]
-    st.session_state.odd = s["odd"]
-    st.session_state.objetivo = s["objetivo"]
-    st.session_state.bilhetes = s["bilhetes"]
-    st.session_state.patamar_intervalo = tuple(s["pat"])
-
-nome_novo_set = st.text_input("Nome do set (novo ou para editar)", value=set_atual if set_atual != "—" else "")
-
-col1, col2 = st.columns(2)
-
-with col1:
-    if st.button("💾 Salvar set"):
-        st.session_state.sets[nome_novo_set] = {
-            "fixo": st.session_state.sets.get(nome_novo_set, {}).get("fixo", False),
-            "modo": st.session_state.modo,
-            "valor_ur": st.session_state.valor_ur,
-            "odd": st.session_state.odd,
-            "objetivo": st.session_state.objetivo,
-            "bilhetes": st.session_state.bilhetes,
-            "pat": list(st.session_state.patamar_intervalo)
-        }
-        salvar_sets(st.session_state.sets)
-        st.success("Set salvo com sucesso.")
-        st.experimental_rerun()
-
-with col2:
-    if set_atual != "—" and not st.session_state.sets[set_atual].get("fixo"):
-        if st.button("🗑 Excluir set"):
-            del st.session_state.sets[set_atual]
-            salvar_sets(st.session_state.sets)
-            st.success("Set excluído.")
-            st.experimental_rerun()
-
-# =========================================================
-# NÚCLEO MATEMÁTICO
+# NÚCLEO MATEMÁTICO (EXTRAÇÃO – PONTO 3)
 # =========================================================
 def calc_bilhetes(valor_ur, odd, objetivo):
     n = math.log(objetivo / valor_ur) / math.log(odd)
@@ -225,7 +123,7 @@ def calc_resultado(valor_ur, odd, bilhetes):
     return resultado, "Resultado total antes de qualquer proteção."
 
 def calc_patamares(valor_ur, resultado, pat_min, pat_max):
-    saida = []
+    patamares = []
     for pat in range(pat_min, pat_max + 1):
         valor_pat = valor_ur * pat
         urs = int(resultado // valor_pat)
@@ -240,60 +138,63 @@ def calc_patamares(valor_ur, resultado, pat_min, pat_max):
         else:
             comentario = "Equilíbrio intermediário entre proteção e crescimento."
 
-        saida.append((pat, urs, protegido, risco, pct, comentario))
-    return saida
+        patamares.append((pat, urs, protegido, risco, pct, comentario))
+
+    return patamares
 
 # =========================================================
-# UI – CÁLCULO (INALTERADO)
+# UI – CÁLCULO
 # =========================================================
 st.markdown('<div class="section-spacing"></div>', unsafe_allow_html=True)
 st.markdown("<div class='calc-title'>🎯 Cálculo do Objetivo</div>", unsafe_allow_html=True)
 
 modo = st.selectbox(
     "Qual variável deseja calcular?",
-    ["Bilhetes", "Valor da UR", "Odd", "Objetivo Final"],
-    key="modo"
+    ["Bilhetes", "Valor da UR", "Odd", "Objetivo Final"]
 )
 
 valor_ur = odd = objetivo = bilhetes = None
 
 if modo != "Valor da UR":
-    valor_ur = st.number_input("Valor da UR (R$)", min_value=1, value=100, key="valor_ur")
+    valor_ur = st.number_input("Valor da UR (R$)", min_value=1, value=100)
 
 if modo != "Odd":
-    odd = st.number_input("Odd", min_value=1.01, step=0.01, value=1.33, key="odd")
+    odd = st.number_input("Odd", min_value=1.01, step=0.01, value=1.33)
 
 if modo != "Objetivo Final":
-    objetivo = st.number_input("Objetivo (R$)", min_value=1, value=1000, key="objetivo")
+    objetivo = st.number_input("Objetivo (R$)", min_value=1, value=1000)
 
 if modo != "Bilhetes":
-    bilhetes = st.number_input("Quantidade de Bilhetes", min_value=1, value=10, key="bilhetes")
+    bilhetes = st.number_input("Quantidade de Bilhetes", min_value=1, value=10)
 
 ativar_patamar = False
 pat_min = pat_max = None
 
 if modo != "Valor da UR":
-    ativar_patamar = st.checkbox("Ativar geração de UR filhote (patamar)", key="ativar_patamar")
+    ativar_patamar = st.checkbox("Ativar geração de UR filhote (patamar)")
     if ativar_patamar:
         pat_min, pat_max = st.slider(
             "Intervalo de patamar (×UR)",
             min_value=2,
             max_value=5,
             value=(3, 3),
-            step=1,
-            key="patamar_intervalo"
+            step=1
         )
 
 if st.button("Calcular"):
+
     if modo == "Bilhetes":
         bil, resultado, comentario = calc_bilhetes(valor_ur, odd, objetivo)
         st.success(f"Bilhetes necessários: **{bil}**")
+
     elif modo == "Valor da UR":
         ur, resultado, comentario = calc_ur(odd, bilhetes, objetivo)
         st.success(f"Valor da UR necessário: **R$ {ur:.2f}**")
+
     elif modo == "Odd":
         o, resultado, comentario = calc_odd(valor_ur, bilhetes, objetivo)
         st.success(f"Odd necessária: **{o:.4f}**")
+
     else:
         resultado, comentario = calc_resultado(valor_ur, odd, bilhetes)
         st.success(f"Resultado bruto: **R$ {resultado:.2f}**")
