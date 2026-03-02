@@ -71,6 +71,11 @@ st.markdown("""
     background-color: #0E0E0E;
     font-size: 12px;
     color: #B0B0B0;
+    margin-bottom: 12px;
+}
+.valor {
+    color: #FFFFFF;
+    font-weight: 600;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -207,10 +212,10 @@ if st.button("Calcular"):
             st.markdown(
                 f"<div class='patamar-box'>"
                 f"<strong>Patamar {pat}× UR</strong><br>"
-                f"URs filhotes: <strong>{urs}</strong><br>"
-                f"Capital protegido: <strong>R$ {protegido:.2f}</strong><br>"
-                f"Resultado em risco: <strong>R$ {risco:.2f}</strong><br>"
-                f"% protegido: <strong>{pct:.1f}%</strong><br>"
+                f"URs filhotes: <span class='valor'>{urs}</span><br>"
+                f"Capital protegido: <span class='valor'>R$ {protegido:.2f}</span><br>"
+                f"Resultado em risco: <span class='valor'>R$ {risco:.2f}</span><br>"
+                f"% protegido: <span class='valor'>{pct:.1f}%</span><br>"
                 f"<span class='soft-validation'>{comentario}</span>"
                 f"</div>",
                 unsafe_allow_html=True
