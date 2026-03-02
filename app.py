@@ -127,21 +127,109 @@ def calc_resultado(valor_ur, odd, bilhetes):
     resultado = valor_ur * (odd ** bilhetes)
     return resultado, "Resultado total antes de qualquer proteção."
 
-def calc_patamares(valor_ur, resultado, pat_min, pat_max):
+# =========================================================
+# NOVO MOTOR DE PATAMAR (MODELO B - DINÂMICO POR ESTÁGIOS)
+# =========================================================
+def simular_patamar_modelo_b(valor_ur_base, odd, bilhetes, patamar):
+    """
+    MODELO B (conforme sua operação real):
+    - All-in por bilhete (WIN => saldo *= odd; LOSS => saldo = 0). Aqui é PROJEÇÃO: assume WIN em todos os bilhetes.
+    - Patamar fixo (2x, 3x, 4x ou 5x): define de quantas em quantas vezes a UR_base ocorre uma retirada.
+    - Estágios / níveis do patamar:
+        step = patamar * UR_base
+        níveis em: step, 2*step, 3*step, ...
+      Cada vez que o saldo bruto cruza um novo nível ainda não executado, retira 1*UR_base (UMA VEZ POR NÍVEL).
+    """
+    saldo = float(valor_ur_base)
+    ur_base = float(valor_ur_base)
+    odd = float(odd)
+    bilhetes = int(bilhetes)
+    patamar = int(patamar)
+
+    step = patamar * ur_base
+    nivel_atual = 0  # quantos níveis (k) já foram "executados"
+    total_sacado = 0.0
+    total_saques_eventos = 0  # número de saques (quantos níveis novos executados ao longo dos bilhetes)
+
+    # Histórico opcional (útil caso queira expandir UI depois)
+    historico = []
+
+    for i in range(1, bilhetes + 1):
+        saldo_inicial = saldo
+
+        # Projeção assume WIN (resultado total por bilhete)
+        saldo_bruto = saldo_inicial * odd
+
+        # Quantos níveis (k) o saldo bruto atinge?
+        k_max = int(saldo_bruto // step) if step > 0 else 0
+
+        # Níveis novos atingidos desde o último estado
+        novos = max(0, k_max - nivel_atual)
+
+        # Saque deste bilhete
+        valor_sacado = novos * ur_base
+
+        # Aplica saque (não deixa negativo)
+        saldo_final = max(0.0, saldo_bruto - valor_sacado)
+
+        # Atualiza acumuladores
+        total_sacado += valor_sacado
+        total_saques_eventos += novos
+        nivel_atual += novos
+        saldo = saldo_final
+
+        historico.append({
+            "Bilhete": i,
+            "Saldo Inicial": saldo_inicial,
+            "Odd": odd,
+            "Saldo Bruto": saldo_bruto,
+            "Novos Níveis": novos,
+            "Saque": valor_sacado,
+            "Saldo Final": saldo_final,
+            "Nível Atual": nivel_atual
+        })
+
+        # Se zerar (em projeção isso não ocorre, pois sempre WIN), mas mantemos a lógica robusta
+        if saldo <= 0:
+            break
+
+    return saldo, total_sacado, total_saques_eventos, nivel_atual, historico
+
+def calc_patamares(valor_ur, odd, bilhetes, pat_min, pat_max):
+    """
+    Substitui a lógica anterior (estática) por MODELO B (dinâmico por estágios).
+    Retorna, para cada patamar dentro do intervalo, um resumo compatível com a UI existente:
+    - pat
+    - urs (aqui: número total de retiradas / "URs filhotes" executadas)
+    - protegido (total sacado)
+    - risco (saldo final projetado após todas as retiradas)
+    - pct (percentual protegido vs total final = (sacado + saldo final))
+    - comentario
+    """
     patamares = []
     for pat in range(pat_min, pat_max + 1):
-        valor_pat = valor_ur * pat
-        urs = int(resultado // valor_pat)
-        protegido = urs * valor_ur
-        risco = resultado - protegido
-        pct = (protegido / resultado) * 100 if resultado else 0
+        saldo_final, total_sacado, total_saques_eventos, nivel_atual, _hist = simular_patamar_modelo_b(
+            valor_ur_base=valor_ur,
+            odd=odd,
+            bilhetes=bilhetes,
+            patamar=pat
+        )
+
+        protegido = total_sacado
+        risco = saldo_final
+        total = protegido + risco
+        pct = (protegido / total) * 100 if total else 0
 
         if pat == pat_min:
-            comentario = "Proteção mais frequente, com menor capital exposto."
+            comentario = "Proteção mais frequente (retira a cada menos múltiplos da UR)."
         elif pat == pat_max:
-            comentario = "Proteção mais espaçada, priorizando crescimento."
+            comentario = "Proteção mais espaçada (prioriza crescimento antes de retirar)."
         else:
             comentario = "Equilíbrio intermediário entre proteção e crescimento."
+
+        # 'urs' na UI original era "URs filhotes". No MODELO B, isso vira:
+        # quantidade de retiradas executadas (cada retirada = 1 UR_base).
+        urs = int(total_saques_eventos)
 
         patamares.append((pat, urs, protegido, risco, pct, comentario))
 
@@ -188,17 +276,25 @@ if modo != "Valor da UR":
 
 if st.button("Calcular"):
 
+    # Guardas para usar os valores "efetivos" (principalmente no modo Odd, onde odd é calculada)
+    odd_efetiva = odd
+    valor_ur_efetiva = valor_ur
+    bilhetes_efetivo = bilhetes
+
     if modo == "Bilhetes":
         bil, resultado, comentario = calc_bilhetes(valor_ur, odd, objetivo)
         st.success(f"Bilhetes necessários: **{bil}**")
+        bilhetes_efetivo = bil  # para usar no patamar dinâmico (MODELO B)
 
     elif modo == "Valor da UR":
         ur, resultado, comentario = calc_ur(odd, bilhetes, objetivo)
         st.success(f"Valor da UR necessário: **R$ {ur:.2f}**")
+        # patamar não aparece neste modo (mantido como no original)
 
     elif modo == "Odd":
         o, resultado, comentario = calc_odd(valor_ur, bilhetes, objetivo)
         st.success(f"Odd necessária: **{o:.4f}**")
+        odd_efetiva = o  # importante: odd "efetiva" para o patamar dinâmico
 
     else:
         resultado, comentario = calc_resultado(valor_ur, odd, bilhetes)
@@ -206,18 +302,29 @@ if st.button("Calcular"):
 
     st.markdown(f"<div class='soft-validation'>{comentario}</div>", unsafe_allow_html=True)
 
+    # =========================================================
+    # PATAMAR (MODELO B) - usa odd_efetiva e bilhetes_efetivo
+    # =========================================================
     if ativar_patamar:
-        st.markdown("<div class='patamar-container'>", unsafe_allow_html=True)
-        for pat, urs, protegido, risco, pct, comentario in calc_patamares(valor_ur, resultado, pat_min, pat_max):
-            st.markdown(
-                f"<div class='patamar-box'>"
-                f"<strong>Patamar {pat}× UR</strong><br>"
-                f"URs filhotes: <span class='valor'>{urs}</span><br>"
-                f"Capital protegido: <span class='valor'>R$ {protegido:.2f}</span><br>"
-                f"Resultado em risco: <span class='valor'>R$ {risco:.2f}</span><br>"
-                f"% protegido: <span class='valor'>{pct:.1f}%</span><br>"
-                f"<span class='soft-validation'>{comentario}</span>"
-                f"</div>",
-                unsafe_allow_html=True
-            )
-        st.markdown("</div>", unsafe_allow_html=True)
+        # Para o MODELO B, precisamos simular bilhete a bilhete.
+        # Isso exige: valor_ur (UR_base), odd (efetiva), bilhetes (efetivo).
+        # Se algo estiver None por causa do modo, não calcula (fallback robusto).
+        if valor_ur_efetiva is None or odd_efetiva is None or bilhetes_efetivo is None:
+            st.warning("Não foi possível calcular o patamar com os valores atuais.")
+        else:
+            st.markdown("<div class='patamar-container'>", unsafe_allow_html=True)
+            for pat, urs, protegido, risco, pct, comentario_pat in calc_patamares(
+                valor_ur_efetiva, odd_efetiva, bilhetes_efetivo, pat_min, pat_max
+            ):
+                st.markdown(
+                    f"<div class='patamar-box'>"
+                    f"<strong>Patamar {pat}× UR</strong><br>"
+                    f"URs filhotes (retiradas): <span class='valor'>{urs}</span><br>"
+                    f"Capital protegido (sacado): <span class='valor'>R$ {protegido:.2f}</span><br>"
+                    f"Saldo final em risco: <span class='valor'>R$ {risco:.2f}</span><br>"
+                    f"% protegido (sacado / (sacado + saldo)): <span class='valor'>{pct:.1f}%</span><br>"
+                    f"<span class='soft-validation'>{comentario_pat}</span>"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
+            st.markdown("</div>", unsafe_allow_html=True)
